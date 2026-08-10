@@ -1023,9 +1023,12 @@ tr:hover td{background:rgba(90,107,79,.05);}
           </select>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn" id="btnAbrirPantallaProyeccion">Abrir pantalla seleccionada</button>
+          <button class="btn" onclick="abrirPantallaProyeccion('1')">📺 Pantalla 1</button>
+          <button class="btn" onclick="abrirPantallaProyeccion('2')">📺 Pantalla 2</button>
+          <button class="btn" onclick="abrirPantallaProyeccion('3')">📺 Pantalla 3</button>
           <button class="btn" id="btnTransmitir" style="background:var(--wine);">Transmitir...</button>
         </div>
+        <div style="font-size:10px;color:var(--ink-dim);margin-top:4px;">Cada boton abre esa pantalla e intenta ponerla en pantalla completa automaticamente (funciona en la mayoria de computadoras; si no, dale a "Pantalla completa" una vez ahi).</div>
         <div style="margin-top:12px;"><label style="font-size:11.5px;">Fondo para canciones y versiculos</label>
           <select id="proyFondoSelect" onchange="cambiarFondoProyeccion()">
             <option value="negro">Negro clasico</option>
@@ -1948,7 +1951,11 @@ function mostrarApp(user){
     btn.style.display = '';
   });
   initApp();
-  if(location.hash.indexOf('#proyeccion')===0) activarModoKiosk(location.hash.replace('#proyeccion','')||'1');
+  if(location.hash.indexOf('#proyeccion')===0){
+    var _restante = location.hash.replace('#proyeccion','');
+    var _autoFull = _restante.indexOf('-full')>=0;
+    activarModoKiosk(_restante.replace('-full','')||'1', _autoFull);
+  }
 }
 document.getElementById('loginBtn').onclick=function(){
   var email=document.getElementById('loginEmail').value.trim();
@@ -8312,16 +8319,13 @@ cargarCanalesCompartidos();
 setInterval(cargarCanalesCompartidos, 3000);
 var _pantallasAbiertas = {};
 function abrirPantallaProyeccion(numero){
-  var ventanaNueva = window.open(location.origin+location.pathname+'#proyeccion'+numero, '_blank');
+  var ventanaNueva = window.open(location.origin+location.pathname+'#proyeccion'+numero+'-full', '_blank');
   if(ventanaNueva){
     try{ ventanaNueva.blur(); }catch(e){}
     window.focus();
   }
   _pantallasAbiertas[numero] = true;
 }
-document.getElementById('btnAbrirPantallaProyeccion').onclick = function(){
-  abrirPantallaProyeccion(obtenerPantallaDestino());
-};
 document.getElementById('btnTransmitir').onclick = function(){
   var opciones = '';
   var versoTexto = document.getElementById('proyVersoTexto').value.trim();
@@ -8621,12 +8625,19 @@ if(!window._proyImagenesIntervalo){
     if(document.getElementById('view-proyeccion') && document.getElementById('view-proyeccion').classList.contains('active')) cargarImagenesCompartidas();
   }, 3000);
 }
-function activarModoKiosk(numeroPantalla){
+function activarModoKiosk(numeroPantalla, intentarPantallaCompleta){
   _kioskNumeroPantalla = numeroPantalla || '1';
   document.getElementById('pantallaProyeccionKiosk').classList.add('activo');
   actualizarPantallaKiosk();
   if(_kioskIntervalo) clearInterval(_kioskIntervalo);
   _kioskIntervalo = setInterval(actualizarPantallaKiosk, 1500);
+  if(intentarPantallaCompleta){
+    setTimeout(function(){
+      var el = document.getElementById('pantallaProyeccionKiosk');
+      var pedir = el.requestFullscreen || el.webkitRequestFullscreen;
+      if(pedir){ try{ pedir.call(el); el.classList.add('proy-controles-ocultos'); }catch(e){} }
+    }, 400);
+  }
 }
 function estaEnPantallaCompleta(){
   return !!(document.fullscreenElement || document.webkitFullscreenElement);
