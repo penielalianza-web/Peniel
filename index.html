@@ -1059,8 +1059,9 @@ tr:hover td{background:rgba(90,107,79,.05);}
 
       <div class="proy-panel-card">
         <div class="proy-panel-titulo">4. Diapositivas de imagen (temporales)</div>
-        <div class="proy-panel-ayuda">Sube fotos o capturas de tus diapositivas (JPG/PNG) directo, sin depender de enlaces externos. Se guardan temporalmente para poder pasarlas durante el servicio, y las borras con un boton cuando termines — no se quedan guardadas para siempre.</div>
-        <input type="file" id="proyImagenesInput" accept="image/*" multiple style="margin-bottom:10px;">
+        <div class="proy-panel-ayuda">Sube fotos/capturas de tus diapositivas (JPG/PNG) o un archivo <b>PDF</b> — cada pagina del PDF se convierte en una diapositiva automaticamente. Se guardan temporalmente para pasarlas durante el servicio, y las borras con un boton cuando termines.</div>
+        <div style="font-size:11px;color:var(--wine);margin-bottom:8px;">Los archivos .ppt/.pptx no se pueden abrir directo en el navegador. Solucion rapida: en PowerPoint, Keynote o Google Slides, usa "Exportar" o "Guardar como" y elige PDF — luego sube ese PDF aqui.</div>
+        <input type="file" id="proyImagenesInput" accept="image/*,application/pdf,.pdf" multiple style="margin-bottom:10px;">
         <div class="toolbar">
           <button class="btn" onclick="subirDiapositivasImagen()">Subir diapositivas</button>
           <button class="btn ghost small" id="btnCerrarSesionDiapositivas" style="display:none;">Cerrar sesion (borrar estas diapositivas)</button>
@@ -1790,6 +1791,7 @@ tr:hover td{background:rgba(90,107,79,.05);}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
 var _cfg={apiKey:"AIzaSyCvmLSCVLRmi87PdzA9TbY9FXMxljwJuoo",authDomain:"iglesiaalianzapeniel-24992.firebaseapp.com",databaseURL:"https://iglesiaalianzapeniel-24992-default-rtdb.firebaseio.com",projectId:"iglesiaalianzapeniel-24992"};
 if(!firebase.apps.length) firebase.initializeApp(_cfg);
@@ -8194,35 +8196,79 @@ function comprimirImagen(archivo, cb){
       canvas.height = img.height*escala;
       var ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      cb(canvas.toDataURL('image/jpeg', 0.72));
+      cb([canvas.toDataURL('image/jpeg', 0.72)]);
     };
     img.src = ev.target.result;
   };
   lector.readAsDataURL(archivo);
 }
+function convertirPdfAImagenes(archivo, onProgreso, cb){
+  var lector = new FileReader();
+  lector.onload = function(ev){
+    var datos = new Uint8Array(ev.target.result);
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    window.pdfjsLib.getDocument({data:datos}).promise.then(function(pdf){
+      var paginas = [];
+      var maxAncho = 1280;
+      function procesarPagina(num){
+        if(num>pdf.numPages){ cb(paginas); return; }
+        pdf.getPage(num).then(function(pagina){
+          var vp1 = pagina.getViewport({scale:1});
+          var escala = maxAncho/vp1.width;
+          var viewport = pagina.getViewport({scale:escala});
+          var canvas = document.createElement('canvas');
+          canvas.width = viewport.width; canvas.height = viewport.height;
+          pagina.render({canvasContext:canvas.getContext('2d'), viewport:viewport}).promise.then(function(){
+            paginas.push(canvas.toDataURL('image/jpeg', 0.75));
+            if(onProgreso) onProgreso(num, pdf.numPages);
+            procesarPagina(num+1);
+          });
+        });
+      }
+      procesarPagina(1);
+    }).catch(function(){ cb(null); });
+  };
+  lector.readAsArrayBuffer(archivo);
+}
 function subirDiapositivasImagen(){
   var input = document.getElementById('proyImagenesInput');
   var archivos = Array.prototype.slice.call(input.files||[]);
-  if(archivos.length===0){ alert('Elige una o mas imagenes primero.'); return; }
+  if(archivos.length===0){ alert('Elige una o mas imagenes, o un PDF, primero.'); return; }
+  var nombresPptx = archivos.filter(function(f){ return /\.pptx?$/i.test(f.name); });
+  if(nombresPptx.length>0){
+    alert('El archivo "'+nombresPptx[0].name+'" es un PowerPoint y no se puede abrir directo en el navegador.\n\nExportalo como PDF desde PowerPoint (Archivo > Exportar > Crear PDF) y sube ese PDF aqui.');
+    return;
+  }
   var estadoBox = document.getElementById('proyImagenesEstado');
-  estadoBox.textContent = 'Procesando 0 de '+archivos.length+'...';
+  estadoBox.textContent = 'Procesando 0 de '+archivos.length+' archivo(s)...';
   var resultados = [];
   var i = 0;
   function siguiente(){
     if(i>=archivos.length){
+      if(resultados.length===0){ estadoBox.textContent = 'No se pudo procesar ningun archivo.'; return; }
       var deck = {titulo:'Diapositivas', imagenes:resultados, index:0};
       window.fbFetch(fbUrl('iglesia/proyeccionImagenes'), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(deck)}, function(e){
-        estadoBox.textContent = e ? 'Error al guardar. Intenta con menos imagenes o mas livianas.' : (resultados.length+' diapositiva(s) listas.');
+        estadoBox.textContent = e ? 'Error al guardar. Intenta con menos diapositivas o un PDF mas liviano.' : (resultados.length+' diapositiva(s) listas.');
         if(!e) actualizarPanelImagenes(deck);
       });
       return;
     }
-    comprimirImagen(archivos[i], function(dataUrl){
-      resultados.push(dataUrl);
-      i++;
-      estadoBox.textContent = 'Procesando '+i+' de '+archivos.length+'...';
-      siguiente();
-    });
+    var archivo = archivos[i];
+    var esPdf = archivo.type==='application/pdf' || /\.pdf$/i.test(archivo.name);
+    if(esPdf){
+      convertirPdfAImagenes(archivo, function(pag,total){ estadoBox.textContent = 'Convirtiendo PDF: pagina '+pag+' de '+total+'...'; }, function(paginas){
+        if(paginas) resultados = resultados.concat(paginas);
+        i++;
+        siguiente();
+      });
+    } else {
+      comprimirImagen(archivo, function(imgs){
+        resultados = resultados.concat(imgs);
+        i++;
+        estadoBox.textContent = 'Procesando '+i+' de '+archivos.length+' archivo(s)...';
+        siguiente();
+      });
+    }
   }
   siguiente();
 }
