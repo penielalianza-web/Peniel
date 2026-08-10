@@ -7807,6 +7807,7 @@ function detectarEmbedUrl(url){
 function renderProyeccion(){
   actualizarIndicadorEstadoProyeccion();
   cargarCanalesCompartidos();
+  cargarImagenesCompartidas();
   var box = document.getElementById('tablaPresentaciones');
   if(presentaciones.length===0){ box.innerHTML = '<div class="empty">Aun no hay diapositivas o videos guardados.</div>'; return; }
   box.innerHTML = presentaciones.map(function(p){
@@ -8099,6 +8100,9 @@ document.getElementById('btnTransmitir').onclick = function(){
       return '<option value="canal:'+c.id+'">'+c.nombre+' (diapositiva '+(c.index+1)+' de '+c.slides.length+')</option>';
     }).join('')+'</optgroup>';
   }
+  if(_imagenesDeckActual){
+    opciones += '<optgroup label="Diapositivas de imagen"><option value="imagenes">'+(_imagenesDeckActual.titulo||'Diapositivas')+' (diapositiva '+((_imagenesDeckActual.index||0)+1)+' de '+_imagenesDeckActual.imagenes.length+')</option></optgroup>';
+  }
   if(presentaciones.length>0){
     opciones += '<optgroup label="Diapositivas y videos guardados">'+presentaciones.map(function(p){
       return '<option value="item:'+p.id+'">'+(p.tipo==='video'?'Video: ':'Diapositivas: ')+p.titulo+'</option>';
@@ -8118,7 +8122,13 @@ document.getElementById('btnConfirmarTransmitir').onclick = function(){
   else if(val==='blanco') proyectarBlanco();
   else if(val.indexOf('canal:')===0) seleccionarCanalTexto(val.slice(6));
   else if(val.indexOf('item:')===0) proyectarItem(val.slice(5));
+  else if(val==='imagenes') proyectarImagenActual();
 };
+function proyectarImagenActual(){
+  if(!_imagenesDeckActual) return;
+  var idx = _imagenesDeckActual.index||0;
+  enviarEstadoProyeccion({modo:'imagen', src:_imagenesDeckActual.imagenes[idx], index:idx, total:_imagenesDeckActual.imagenes.length});
+}
 var _ultimoEstadoKioskJson = null;
 var _kioskIntervalo = null;
 function actualizarPantallaKiosk(){
@@ -8273,6 +8283,7 @@ function subirDiapositivasImagen(){
   siguiente();
 }
 function actualizarPanelImagenes(deck){
+  _imagenesDeckActual = (deck && deck.imagenes && deck.imagenes.length) ? deck : null;
   var mini = document.getElementById('proyImagenesMiniaturas');
   var nav = document.getElementById('proyImagenesNav');
   var contador = document.getElementById('proyImagenesContador');
@@ -8308,7 +8319,16 @@ document.getElementById('btnCerrarSesionDiapositivas').onclick = function(){
     proyectarBlanco();
   });
 };
-window.fbFetch(fbUrl('iglesia/proyeccionImagenes'), {}, function(e,deck){ if(!e && deck) actualizarPanelImagenes(deck); });
+var _imagenesDeckActual = null;
+function cargarImagenesCompartidas(){
+  window.fbFetch(fbUrl('iglesia/proyeccionImagenes'), {}, function(e,deck){ if(!e) actualizarPanelImagenes(deck); });
+}
+cargarImagenesCompartidas();
+if(!window._proyImagenesIntervalo){
+  window._proyImagenesIntervalo = setInterval(function(){
+    if(document.getElementById('view-proyeccion') && document.getElementById('view-proyeccion').classList.contains('active')) cargarImagenesCompartidas();
+  }, 3000);
+}
 function activarModoKiosk(){
   document.getElementById('pantallaProyeccionKiosk').classList.add('activo');
   actualizarPantallaKiosk();
