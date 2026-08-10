@@ -1007,6 +1007,7 @@ tr:hover td{background:rgba(90,107,79,.05);}
     <section class="view" id="view-proyeccion">
       <div class="view-head">
         <div><h1>Proyeccion</h1><div class="sub">Panel de control para lo que se proyecta en el servicio</div></div>
+        <button class="btn ghost small" id="btnModoSoloTransmision">Modo solo transmision</button>
       </div>
 
       <div class="proy-panel-card proy-panel-destacada">
@@ -1033,6 +1034,7 @@ tr:hover td{background:rgba(90,107,79,.05);}
         <div style="font-size:10.5px;color:var(--ink-dim);margin-top:6px;">En la pantalla de proyeccion: desliza el dedo hacia la izquierda o derecha para cambiar de diapositiva. Desliza hacia abajo para mostrar los botones (salir, pantalla completa, carrusel) sin que se vean durante la proyeccion.</div>
         <div style="margin-top:14px;padding:10px 14px;background:var(--parchment-2);border-radius:8px;font-size:12.5px;">
           <b>Mostrando ahora:</b> <span id="proyEstadoActual">Cargando...</span>
+          <button class="btn small ghost" style="margin-left:6px;padding:2px 8px;" onclick="actualizarIndicadorEstadoProyeccion()">Actualizar</button>
         </div>
         <div style="margin-top:10px;">
           <div style="font-size:11px;color:var(--ink-dim);margin-bottom:5px;">Vista previa en vivo (se actualiza sola):</div>
@@ -7857,6 +7859,7 @@ function detectarEmbedUrl(url){
   return null;
 }
 function renderProyeccion(){
+  actualizarBotonModoSoloTransmision();
   actualizarIndicadorEstadoProyeccion();
   cargarCanalesCompartidos();
   cargarImagenesCompartidas();
@@ -7944,7 +7947,8 @@ function actualizarIndicadorEstadoProyeccion(){
   var mini = document.getElementById('proyMiniatura');
   if(!indicador) return;
   window.fbFetch(fbUrl('iglesia/proyeccionEstado'), {}, function(e,d){
-    indicador.textContent = e ? 'No se pudo consultar' : describirEstadoProyeccion(d);
+    var hora = new Date().toLocaleTimeString('es-EC', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+    indicador.textContent = (e ? 'No se pudo consultar' : describirEstadoProyeccion(d)) + ' (revisado '+hora+')';
     if(!mini) return;
     mini.className = 'proy-miniatura-caja proy-fondo-'+((d && d.fondo) || 'negro');
     var claseFuente = 'proy-fuente-'+((d && d.fuente)||'georgia');
@@ -7981,6 +7985,20 @@ function buscarVersiculoOnline(comparar){
   window.open('https://www.biblegateway.com/passage/?search='+encodeURIComponent(q)+'&version='+versiones, '_blank');
   document.getElementById('proyVersoRef').value = q+', RVR1960';
 }
+var _modoSoloTransmision = false;
+function actualizarBotonModoSoloTransmision(){
+  var btn = document.getElementById('btnModoSoloTransmision');
+  if(btn) btn.textContent = _modoSoloTransmision ? 'Volver a modo completo' : 'Modo solo transmision';
+}
+document.getElementById('btnModoSoloTransmision').onclick = function(){
+  _modoSoloTransmision = !_modoSoloTransmision;
+  document.querySelectorAll('.navbtn[data-view]').forEach(function(btn){
+    if(btn.dataset.view==='proyeccion') return;
+    if(_modoSoloTransmision) btn.style.display = 'none';
+    else if(!(btn.dataset.view==='auditoria' || btn.dataset.view==='usuarios') || esAdmin()) btn.style.display = '';
+  });
+  actualizarBotonModoSoloTransmision();
+};
 function obtenerFondoElegido(){
   var sel = document.getElementById('proyFondoSelect');
   return sel ? sel.value : 'negro';
