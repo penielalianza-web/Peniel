@@ -1020,15 +1020,27 @@ tr:hover td{background:rgba(90,107,79,.05);}
             <option value="1">Pantalla 1 (principal)</option>
             <option value="2">Pantalla 2</option>
             <option value="3">Pantalla 3</option>
+            <option value="4">Pantalla 4</option>
           </select>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn" onclick="abrirPantallaProyeccion('1')">📺 Pantalla 1</button>
           <button class="btn" onclick="abrirPantallaProyeccion('2')">📺 Pantalla 2</button>
           <button class="btn" onclick="abrirPantallaProyeccion('3')">📺 Pantalla 3</button>
+          <button class="btn" onclick="abrirPantallaProyeccion('4')">📺 Pantalla 4</button>
           <button class="btn" id="btnTransmitir" style="background:var(--wine);">Transmitir...</button>
         </div>
         <div style="font-size:10px;color:var(--ink-dim);margin-top:4px;">Cada boton abre esa pantalla e intenta ponerla en pantalla completa automaticamente (funciona en la mayoria de computadoras; si no, dale a "Pantalla completa" una vez ahi).</div>
+        <div style="margin-top:14px;padding:12px 14px;background:var(--parchment-2);border-radius:8px;">
+          <div style="font-size:11.5px;font-weight:600;margin-bottom:8px;">Configuracion rapida de las 4 pantallas</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="btn small ghost" onclick="proyectarPanelApp('1')">Panel → Pantalla 1</button>
+            <button class="btn small ghost" onclick="proyectarVersiculoRapido('2')">Versiculo → Pantalla 2</button>
+            <button class="btn small ghost" onclick="enviarCancionActualAPantalla('3')">Cancion actual → Pantalla 3</button>
+            <button class="btn small ghost" onclick="proyectarImagenActual('4')">Imagen actual → Pantalla 4</button>
+          </div>
+          <div style="font-size:10px;color:var(--ink-dim);margin-top:6px;">Envia cada tipo de contenido a su pantalla dedicada de un clic — util para dejar las 4 listas al inicio del servicio.</div>
+        </div>
         <div style="margin-top:12px;"><label style="font-size:11.5px;">Fondo para canciones y versiculos</label>
           <select id="proyFondoSelect" onchange="cambiarFondoProyeccion()">
             <option value="negro">Negro clasico</option>
@@ -1898,6 +1910,11 @@ var AREAS_PERMISOS = [
 // exista su registro en la base de datos (para poder crear el primer usuario).
 
 window.fbFetch = function(url,opts,cb){
+  var yaRespondio = false;
+  function responder(e,d){ if(yaRespondio) return; yaRespondio = true; cb(e,d); }
+  var limiteTiempo = setTimeout(function(){
+    responder(new Error('Tiempo de espera agotado — revisa tu conexion e intenta de nuevo'), null);
+  }, 12000);
   var u=window._fbAuth.currentUser;
   function go(tok){
     var sep=url.indexOf('?')>=0?'&':'?';
@@ -1906,7 +1923,7 @@ window.fbFetch = function(url,opts,cb){
       if(!r.ok) throw new Error('HTTP '+r.status);
       if(opts && opts.method==='DELETE') return null;
       return r.json();
-    }).then(function(d){cb(null,d);}).catch(function(e){cb(e,null);});
+    }).then(function(d){clearTimeout(limiteTiempo);responder(null,d);}).catch(function(e){clearTimeout(limiteTiempo);responder(e,null);});
   }
   if(u){u.getIdToken(false).then(go).catch(function(){go(null);});}
   else{go(null);}
@@ -8165,11 +8182,11 @@ function aplicarClaseFondo(kiosk, fondo){
   Array.prototype.slice.call(kiosk.classList).forEach(function(c){ if(c.indexOf('proy-fondo-')===0) kiosk.classList.remove(c); });
   kiosk.classList.add('proy-fondo-'+fondo);
 }
-function proyectarVersiculoRapido(){
+function proyectarVersiculoRapido(pantallaForzada){
   var texto = document.getElementById('proyVersoTexto').value.trim();
   var ref = document.getElementById('proyVersoRef').value.trim();
   if(!texto){ alert('Escribe el texto del versiculo.'); return; }
-  enviarEstadoProyeccion({modo:'versiculo', texto:texto, ref:ref, fondo:obtenerFondoElegido(), fuente:obtenerFuenteElegida(), tamano:obtenerTamanoElegido()});
+  enviarEstadoProyeccion({modo:'versiculo', texto:texto, ref:ref, fondo:obtenerFondoElegido(), fuente:obtenerFuenteElegida(), tamano:obtenerTamanoElegido()}, pantallaForzada);
 }
 function proyectarBlanco(){
   enviarEstadoProyeccion({modo:'blanco'});
@@ -8397,7 +8414,7 @@ document.getElementById('btnConfirmarTransmitir').onclick = function(){
     abrirPantallaProyeccion(pantalla);
   }
 };
-function proyectarPanelApp(){
+function proyectarPanelApp(pantallaForzada){
   window.fbFetch(fbUrl('iglesia/anuncios'), {}, function(e1, anunciosData){
     window.fbFetch(fbUrl('iglesia/eventos'), {}, function(e2, eventosData){
       var hoy = new Date().toISOString().slice(0,10);
@@ -8406,14 +8423,20 @@ function proyectarPanelApp(){
       var proximoEvento = listaEventos.filter(function(ev){return (ev.fechaInicio||'')>=hoy;}).sort(function(a,b){return (a.fechaInicio||'').localeCompare(b.fechaInicio||'');})[0];
       var anunciosVigentes = listaAnuncios.filter(function(a){return !a.vence || a.vence>=hoy;}).sort(function(a,b){return (b.fecha||'').localeCompare(a.fecha||'');}).slice(0,4);
       var verso = VERSICULOS_ALEATORIOS[Math.floor(Math.random()*VERSICULOS_ALEATORIOS.length)];
-      enviarEstadoProyeccion({modo:'panel', nombreIglesia:(iglesiaConfig&&iglesiaConfig.nombre)||'', verso:verso, proximoEvento:proximoEvento?{nombre:proximoEvento.nombre, fecha:proximoEvento.fechaInicio}:null, anuncios:anunciosVigentes.map(function(a){return {titulo:a.titulo, tipo:a.tipo};}), fondo:obtenerFondoElegido()});
+      enviarEstadoProyeccion({modo:'panel', nombreIglesia:(iglesiaConfig&&iglesiaConfig.nombre)||'', verso:verso, proximoEvento:proximoEvento?{nombre:proximoEvento.nombre, fecha:proximoEvento.fechaInicio}:null, anuncios:anunciosVigentes.map(function(a){return {titulo:a.titulo, tipo:a.tipo};}), fondo:obtenerFondoElegido()}, pantallaForzada);
     });
   });
 }
-function proyectarImagenActual(){
-  if(!_imagenesDeckActual) return;
+function proyectarImagenActual(pantallaForzada){
+  if(!_imagenesDeckActual){ alert('No hay diapositivas de imagen subidas todavia.'); return; }
   var idx = _imagenesDeckActual.index||0;
-  enviarEstadoProyeccion({modo:'imagen', src:_imagenesDeckActual.imagenes[idx], index:idx, total:_imagenesDeckActual.imagenes.length});
+  enviarEstadoProyeccion({modo:'imagen', src:_imagenesDeckActual.imagenes[idx], index:idx, total:_imagenesDeckActual.imagenes.length}, pantallaForzada);
+}
+function enviarCancionActualAPantalla(pantallaForzada){
+  var c = _canalesTexto.find(function(x){return x.id===_canalActivoId;});
+  if(!c || c.slides.length===0){ alert('Elige o carga un canal de cancion primero.'); return; }
+  var textoHtml = c.slides[c.index].split('\n').map(function(l){return l.replace(/</g,'&lt;');}).join('<br>');
+  enviarEstadoProyeccion({modo:'texto', texto:textoHtml, canalId:c.id, index:c.index, total:c.slides.length, fondo:obtenerFondoElegido(), fuente:obtenerFuenteElegida(), tamano:obtenerTamanoElegido()}, pantallaForzada);
 }
 var _ultimoEstadoKioskJson = null;
 var _kioskIntervalo = null;
