@@ -1005,15 +1005,12 @@ tr:hover td{background:rgba(90,107,79,.05);}
 
       <div class="proy-panel-card">
         <div class="proy-panel-titulo">3. Canciones y textos (no se guardan)</div>
-        <div class="proy-panel-ayuda">Crea un canal por cada cancion o tema. Puedes tener varios listos a la vez y saltar entre ellos con un clic. Dentro de cada canal, separa cada estrofa/diapositiva con una linea en blanco.</div>
+        <div class="proy-panel-ayuda">Crea un canal por cada cancion o tema. Copia la letra de internet y pegala tal cual — el sistema la divide en diapositivas automaticamente. Puedes tener varias canciones listas a la vez y saltar entre ellas con un clic.</div>
         <div id="proyCanalesTabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;"></div>
         <button class="btn ghost small" onclick="crearCanalTexto()" style="margin-bottom:14px;">+ Nuevo canal</button>
         <div id="proyCanalEditorWrap" style="display:none;">
-          <textarea id="proyTextoLibre" rows="8" placeholder="Estrofa 1...
-
-Coro...
-
-Estrofa 2..."></textarea>
+          <textarea id="proyTextoLibre" rows="8" oninput="previsualizarSlidesCanal()" placeholder="Pega aqui la letra de la cancion, tal como la copiaste..."></textarea>
+          <div style="font-size:12px;color:var(--wine);font-weight:600;margin-top:4px;" id="proyTextoLibrePreview">Pega la letra de la cancion arriba.</div>
           <div class="toolbar">
             <button class="btn" onclick="actualizarSlidesCanal()">Actualizar diapositivas</button>
             <button class="btn ghost small" onclick="eliminarCanalActual()">Eliminar este canal</button>
@@ -7875,18 +7872,46 @@ function seleccionarCanalTexto(id){
   } else {
     document.getElementById('proyTextoLibreNav').style.display = 'none';
   }
+  previsualizarSlidesCanal();
   renderCanalesTabs();
+}
+function dividirEnSlides(raw){
+  var normalizado = (raw||'').replace(/\r\n/g,'\n').trim();
+  if(!normalizado) return [];
+  if(/^[ \t]*-{3,}[ \t]*$/m.test(normalizado)){
+    return normalizado.split(/^[ \t]*-{3,}[ \t]*$/m).map(function(s){return s.trim();}).filter(function(s){return s.length>0;});
+  }
+  var porBlancos = normalizado.split(/\n[ \t]*\n+/).map(function(s){return s.trim();}).filter(function(s){return s.length>0;});
+  if(porBlancos.length>1) return porBlancos;
+  var lineas = normalizado.split('\n').map(function(s){return s.trim();}).filter(function(s){return s.length>0;});
+  if(lineas.length<=4) return [lineas.join('\n')];
+  var grupos = [];
+  for(var i=0;i<lineas.length;i+=4){ grupos.push(lineas.slice(i,i+4).join('\n')); }
+  return grupos;
+}
+function previsualizarSlidesCanal(){
+  var box = document.getElementById('proyTextoLibrePreview');
+  if(!box) return;
+  var slides = dividirEnSlides(document.getElementById('proyTextoLibre').value);
+  if(slides.length===0){
+    box.textContent = 'Pega la letra de la cancion arriba.';
+  } else if(slides.length===1){
+    box.textContent = 'Se detecto 1 diapositiva con todo el texto.';
+  } else {
+    box.textContent = 'Se detectaron '+slides.length+' diapositivas automaticamente. Listo para actualizar.';
+  }
 }
 function actualizarSlidesCanal(){
   var c = _canalesTexto.find(function(x){return x.id===_canalActivoId;});
   if(!c) return;
   c.texto = document.getElementById('proyTextoLibre').value;
-  var slides = c.texto.split(/\n\s*\n/).map(function(s){return s.trim();}).filter(function(s){return s.length>0;});
+  var slides = dividirEnSlides(c.texto);
   if(slides.length===0){ alert('Pega algun texto primero.'); return; }
   c.slides = slides;
   c.index = 0;
   document.getElementById('proyTextoLibreNav').style.display = '';
   mostrarSlideTextoLibre();
+  previsualizarSlidesCanal();
   renderCanalesTabs();
 }
 function mostrarSlideTextoLibre(){
