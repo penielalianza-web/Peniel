@@ -974,7 +974,7 @@ tr:hover td{background:rgba(90,107,79,.05);}
 
       <div class="proy-panel-card proy-panel-destacada">
         <div class="proy-panel-titulo">1. Transmitir</div>
-        <div class="proy-panel-ayuda">Abre la pantalla en el dispositivo conectado al proyector/TV (puede ser otro equipo distinto al que usas para controlar) y ponla en pantalla completa. Luego usa "Transmitir" para elegir que se muestra — funciona desde cualquier dispositivo, porque se sincroniza por internet.</div>
+        <div class="proy-panel-ayuda">Abre la pantalla en el dispositivo conectado al proyector/TV y ponla en pantalla completa. <b>Cualquiera con esta app abierta puede controlar lo que se transmite</b> — el expositor desde su tablet o celular, y el equipo de sonido/proyeccion desde el suyo, al mismo tiempo, sin pisarse (el ultimo clic es el que se ve).</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn" id="btnAbrirPantallaProyeccion">Abrir pantalla de proyeccion</button>
           <button class="btn" id="btnTransmitir" style="background:var(--wine);">Transmitir...</button>
@@ -7862,18 +7862,23 @@ function proyectarBlanco(){
   enviarEstadoProyeccion({modo:'blanco'});
 }
 var _canalesTexto = [];
+var _canalActivoId = null;
+var _canalActivoIdGuardado = null;
 var CANALES_STORAGE_KEY = 'peniel_canales_proyeccion';
 function guardarCanalesLocal(){
-  try{ localStorage.setItem(CANALES_STORAGE_KEY, JSON.stringify(_canalesTexto)); }catch(e){}
+  try{ localStorage.setItem(CANALES_STORAGE_KEY, JSON.stringify({canales:_canalesTexto, activoId:_canalActivoId})); }catch(e){}
 }
 function cargarCanalesLocal(){
   try{
     var raw = localStorage.getItem(CANALES_STORAGE_KEY);
-    if(raw) _canalesTexto = JSON.parse(raw) || [];
+    if(raw){
+      var datos = JSON.parse(raw);
+      _canalesTexto = datos.canales || [];
+      _canalActivoIdGuardado = datos.activoId || null;
+    }
   }catch(e){ _canalesTexto = []; }
 }
 cargarCanalesLocal();
-var _canalActivoId = null;
 function crearCanalTexto(){
   var nombre = prompt('Nombre del canal (ej. el nombre de la cancion):', 'Cancion '+(_canalesTexto.length+1));
   if(nombre===null) return;
@@ -7972,6 +7977,17 @@ function eliminarCanalActual(){
     document.getElementById('proyTextoLibre').value = '';
     renderCanalesTabs();
   }
+}
+if(_canalActivoIdGuardado && _canalesTexto.some(function(c){return c.id===_canalActivoIdGuardado;})){
+  _canalActivoId = _canalActivoIdGuardado;
+  var _cRestaurado = _canalesTexto.find(function(x){return x.id===_canalActivoId;});
+  document.getElementById('proyCanalEditorWrap').style.display = '';
+  document.getElementById('proyTextoLibre').value = _cRestaurado.texto;
+  if(_cRestaurado.slides.length>0){
+    document.getElementById('proyTextoLibreNav').style.display = '';
+    document.getElementById('proyTextoLibreContador').textContent = 'Diapositiva '+(_cRestaurado.index+1)+' de '+_cRestaurado.slides.length;
+  }
+  previsualizarSlidesCanal();
 }
 renderCanalesTabs();
 document.getElementById('btnAbrirPantallaProyeccion').onclick = function(){
