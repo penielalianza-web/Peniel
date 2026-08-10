@@ -180,6 +180,10 @@ tr:hover td{background:rgba(90,107,79,.05);}
 .proy-verso-ref{font-size:2.1vw;margin-top:32px;color:#e3b341;font-family:Georgia,serif;}
 .proy-salir{position:fixed;top:16px;right:18px;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.35);padding:7px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-family:var(--font-b);}
 .proy-salir:hover{background:rgba(255,255,255,.22);}
+.proy-panel-card{background:var(--white);border:1px solid var(--line);border-radius:12px;padding:20px 22px;margin-bottom:18px;}
+.proy-panel-destacada{border-color:var(--wine-dim);background:rgba(122,59,63,.03);}
+.proy-panel-titulo{font-family:var(--font-d);font-size:17px;color:var(--wine);margin-bottom:6px;}
+.proy-panel-ayuda{font-size:11.5px;color:var(--ink-dim);margin-bottom:14px;line-height:1.5;}
 .diag-item{border-bottom:1px dashed var(--line);padding:10px 0;}
 .diag-item:last-child{border-bottom:none;}
 .diag-item h4{font-family:var(--font-d);font-size:14px;color:var(--wine);margin-bottom:6px;}
@@ -965,59 +969,71 @@ tr:hover td{background:rgba(90,107,79,.05);}
 
     <section class="view" id="view-proyeccion">
       <div class="view-head">
-        <div><h1>Proyeccion</h1><div class="sub">Diapositivas, videos y textos biblicos para proyectar en el servicio</div></div>
-        <button class="btn" id="btnAbrirPantallaProyeccion">Abrir pantalla de proyeccion</button>
+        <div><h1>Proyeccion</h1><div class="sub">Panel de control para lo que se proyecta en el servicio</div></div>
       </div>
-      <div style="font-size:11.5px;color:var(--ink-dim);margin-bottom:16px;">Abre la pantalla de proyeccion en una ventana nueva y llevala al proyector/TV de la iglesia (pantalla completa con F11). Desde aqui controlas que se muestra, sin que la congregacion vea los controles.</div>
 
-      <div class="kpi-section-title" style="margin-top:0;">Versiculo rapido</div>
-      <div class="form-grid" style="margin-bottom:6px;">
-        <div class="full"><label>Buscar referencia (ej. Juan 3:16)</label>
-          <div style="display:flex;gap:6px;">
-            <input id="proyVersoBuscar" placeholder="Libro capitulo:versiculo" style="flex:1;">
-            <button type="button" class="btn small" onclick="buscarVersiculoOnline(false)">Buscar RVR1960</button>
-            <button type="button" class="btn small ghost" onclick="buscarVersiculoOnline(true)">Comparar versiones</button>
-          </div>
-          <div style="font-size:10.5px;color:var(--ink-dim);margin-top:3px;">Se abre en una pestana nueva (Bible Gateway) para que copies el texto exacto que quieras proyectar — asi respetamos los derechos de autor de la traduccion.</div>
+      <div class="proy-panel-card proy-panel-destacada">
+        <div class="proy-panel-titulo">1. Pantalla de proyeccion</div>
+        <div class="proy-panel-ayuda">Abre esto en el dispositivo conectado al proyector/TV (puede ser otro equipo distinto al que usas para controlar) y ponlo en pantalla completa. El control funciona desde cualquier dispositivo — celular, tablet o computadora — porque se sincroniza por internet.</div>
+        <button class="btn" id="btnAbrirPantallaProyeccion">Abrir pantalla de proyeccion</button>
+        <div style="margin-top:14px;padding:10px 14px;background:var(--parchment-2);border-radius:8px;font-size:12.5px;">
+          <b>Mostrando ahora:</b> <span id="proyEstadoActual">Cargando...</span>
         </div>
       </div>
-      <div class="form-grid" style="margin-bottom:10px;">
-        <div class="full"><label>Texto del versiculo (pega aqui lo que copiaste)</label><textarea id="proyVersoTexto" rows="2" placeholder="Escribe o pega el texto biblico..."></textarea></div>
-        <div><label>Referencia</label><input id="proyVersoRef" placeholder="Ej. Juan 3:16, RVR1960"></div>
-      </div>
-      <div class="toolbar">
-        <button class="btn" onclick="proyectarVersiculoRapido()">Proyectar versiculo</button>
-        <button class="btn ghost" onclick="proyectarBlanco()">Pantalla en blanco</button>
+
+      <div class="proy-panel-card">
+        <div class="proy-panel-titulo">2. Versiculo biblico</div>
+        <div class="proy-panel-ayuda">Busca la cita, copia el texto de la fuente con licencia, pegalo aqui y proyectalo.</div>
+        <div class="form-grid" style="margin-bottom:8px;">
+          <div class="full"><label>Buscar referencia (ej. Juan 3:16)</label>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <input id="proyVersoBuscar" placeholder="Libro capitulo:versiculo" style="flex:1;min-width:160px;">
+              <button type="button" class="btn small" onclick="buscarVersiculoOnline(false)">Buscar RVR1960</button>
+              <button type="button" class="btn small ghost" onclick="buscarVersiculoOnline(true)">Comparar versiones</button>
+            </div>
+          </div>
+        </div>
+        <div class="form-grid" style="margin-bottom:10px;">
+          <div class="full"><label>Texto del versiculo (pega aqui lo que copiaste)</label><textarea id="proyVersoTexto" rows="2" placeholder="Escribe o pega el texto biblico..."></textarea></div>
+          <div><label>Referencia</label><input id="proyVersoRef" placeholder="Ej. Juan 3:16, RVR1960"></div>
+        </div>
+        <div class="toolbar" style="margin-bottom:0;">
+          <button class="btn" onclick="proyectarVersiculoRapido()">Proyectar versiculo</button>
+          <button class="btn ghost" onclick="proyectarBlanco()">Pantalla en blanco</button>
+        </div>
       </div>
 
-      <div class="kpi-section-title">Letras de canciones / diapositivas de ensenanza (no se guardan)</div>
-      <div style="font-size:11px;color:var(--ink-dim);margin-bottom:8px;">Crea un canal por cada cancion o tema (puedes tener varios listos a la vez) y cambia entre ellos al instante durante el servicio. Nada de esto se guarda en la base de datos.</div>
-      <div id="proyCanalesTabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;"></div>
-      <button class="btn ghost small" onclick="crearCanalTexto()" style="margin-bottom:14px;">+ Nuevo canal</button>
-      <div id="proyCanalEditorWrap" style="display:none;">
-        <textarea id="proyTextoLibre" rows="8" placeholder="Estrofa 1...
+      <div class="proy-panel-card">
+        <div class="proy-panel-titulo">3. Canciones y textos (no se guardan)</div>
+        <div class="proy-panel-ayuda">Crea un canal por cada cancion o tema. Puedes tener varios listos a la vez y saltar entre ellos con un clic. Dentro de cada canal, separa cada estrofa/diapositiva con una linea en blanco.</div>
+        <div id="proyCanalesTabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;"></div>
+        <button class="btn ghost small" onclick="crearCanalTexto()" style="margin-bottom:14px;">+ Nuevo canal</button>
+        <div id="proyCanalEditorWrap" style="display:none;">
+          <textarea id="proyTextoLibre" rows="8" placeholder="Estrofa 1...
 
 Coro...
 
 Estrofa 2..."></textarea>
-        <div class="toolbar">
-          <button class="btn" onclick="actualizarSlidesCanal()">Actualizar diapositivas</button>
-          <button class="btn ghost small" onclick="eliminarCanalActual()">Eliminar este canal</button>
-        </div>
-        <div id="proyTextoLibreNav" style="display:none;">
           <div class="toolbar">
-            <button class="btn ghost small" onclick="navegarTextoLibre(-1)">← Anterior</button>
-            <span id="proyTextoLibreContador" style="align-self:center;font-size:13px;color:var(--ink-dim);"></span>
-            <button class="btn ghost small" onclick="navegarTextoLibre(1)">Siguiente →</button>
+            <button class="btn" onclick="actualizarSlidesCanal()">Actualizar diapositivas</button>
+            <button class="btn ghost small" onclick="eliminarCanalActual()">Eliminar este canal</button>
+          </div>
+          <div id="proyTextoLibreNav" style="display:none;">
+            <div style="display:flex;align-items:center;justify-content:center;gap:14px;padding:14px 0;">
+              <button class="btn" style="min-width:120px;" onclick="navegarTextoLibre(-1)">← Anterior</button>
+              <span id="proyTextoLibreContador" style="font-size:14px;font-weight:600;color:var(--ink-dim);min-width:110px;text-align:center;"></span>
+              <button class="btn" style="min-width:120px;" onclick="navegarTextoLibre(1)">Siguiente →</button>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="view-head" style="margin-top:24px;">
-        <div class="sub">Diapositivas y videos guardados</div>
-        <button class="btn" id="btnNuevaPresentacion">+ Nuevo elemento</button>
+      <div class="proy-panel-card">
+        <div class="proy-panel-titulo">4. Diapositivas y videos guardados</div>
+        <div class="proy-panel-ayuda">Enlaces permanentes (Google Slides, YouTube, Google Drive, OneDrive) que quedan guardados para usar cada semana.</div>
+        <button class="btn" id="btnNuevaPresentacion" style="margin-bottom:12px;">+ Nuevo elemento</button>
+        <div id="tablaPresentaciones"></div>
       </div>
-      <div id="tablaPresentaciones"></div>
     </section>
 
 <div class="modal-backdrop" id="modalPresentacion">
@@ -7722,6 +7738,7 @@ function detectarEmbedUrl(url){
   return null;
 }
 function renderProyeccion(){
+  actualizarIndicadorEstadoProyeccion();
   var box = document.getElementById('tablaPresentaciones');
   if(presentaciones.length===0){ box.innerHTML = '<div class="empty">Aun no hay diapositivas o videos guardados.</div>'; return; }
   box.innerHTML = presentaciones.map(function(p){
@@ -7786,8 +7803,27 @@ function eliminarPresentacion(id){
     renderProyeccion();
   });
 }
+function describirEstadoProyeccion(estado){
+  if(!estado) return 'Nada proyectado aun';
+  if(estado.modo==='versiculo') return 'Versiculo — '+(estado.ref||estado.texto.slice(0,40));
+  if(estado.modo==='texto') return 'Cancion / texto libre (una diapositiva)';
+  if(estado.modo==='item') return (estado.embedUrl?'Diapositiva/Video — ':'Enlace externo — ')+estado.titulo;
+  if(estado.modo==='blanco') return 'Pantalla en blanco';
+  return 'Nada proyectado aun';
+}
 function enviarEstadoProyeccion(estado){
-  localStorage.setItem('peniel_proyeccion_estado', JSON.stringify(estado));
+  var indicador = document.getElementById('proyEstadoActual');
+  if(indicador) indicador.textContent = 'Enviando...';
+  window.fbFetch(fbUrl('iglesia/proyeccionEstado'), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(estado)}, function(e){
+    if(indicador) indicador.textContent = e ? 'Error al enviar — revisa tu conexion' : describirEstadoProyeccion(estado);
+  });
+}
+function actualizarIndicadorEstadoProyeccion(){
+  var indicador = document.getElementById('proyEstadoActual');
+  if(!indicador) return;
+  window.fbFetch(fbUrl('iglesia/proyeccionEstado'), {}, function(e,d){
+    indicador.textContent = e ? 'No se pudo consultar' : describirEstadoProyeccion(d);
+  });
 }
 function proyectarItem(id){
   var p = presentaciones.find(function(x){return x.id===id;});
@@ -7883,33 +7919,41 @@ renderCanalesTabs();
 document.getElementById('btnAbrirPantallaProyeccion').onclick = function(){
   window.open(location.origin+location.pathname+'#proyeccion', '_blank');
 };
+var _ultimoEstadoKioskJson = null;
+var _kioskIntervalo = null;
 function actualizarPantallaKiosk(){
-  var raw = localStorage.getItem('peniel_proyeccion_estado');
-  var estado = raw ? JSON.parse(raw) : null;
-  var box = document.getElementById('proyKioskContenido');
-  if(!estado){ box.innerHTML = '<div style="font-size:2vw;color:#888;">Esperando contenido...</div>'; return; }
-  if(estado.modo==='versiculo'){
-    box.innerHTML = '<div class="proy-verso-texto">'+estado.texto+'</div>'+(estado.ref?'<div class="proy-verso-ref">'+estado.ref+'</div>':'');
-  } else if(estado.modo==='texto'){
-    box.innerHTML = '<div class="proy-verso-texto" style="font-size:3.6vw;">'+estado.texto+'</div>';
-  } else if(estado.modo==='item'){
-    if(estado.embedUrl){
-      box.innerHTML = '<iframe src="'+estado.embedUrl+'" allow="autoplay; fullscreen"></iframe>';
+  window.fbFetch(fbUrl('iglesia/proyeccionEstado'), {}, function(e, estado){
+    if(e) return;
+    var estadoJson = JSON.stringify(estado||null);
+    if(estadoJson===_ultimoEstadoKioskJson) return;
+    _ultimoEstadoKioskJson = estadoJson;
+    var box = document.getElementById('proyKioskContenido');
+    if(!estado){ box.innerHTML = '<div style="font-size:2vw;color:#888;">Esperando contenido...</div>'; return; }
+    if(estado.modo==='versiculo'){
+      box.innerHTML = '<div class="proy-verso-texto">'+estado.texto+'</div>'+(estado.ref?'<div class="proy-verso-ref">'+estado.ref+'</div>':'');
+    } else if(estado.modo==='texto'){
+      box.innerHTML = '<div class="proy-verso-texto" style="font-size:3.6vw;">'+estado.texto+'</div>';
+    } else if(estado.modo==='item'){
+      if(estado.embedUrl){
+        box.innerHTML = '<iframe src="'+estado.embedUrl+'" allow="autoplay; fullscreen"></iframe>';
+      } else {
+        box.innerHTML = '<div style="font-size:2.4vw;margin-bottom:24px;font-family:Georgia,serif;">'+estado.titulo+'</div>'+
+          '<a href="'+estado.url+'" target="_blank" style="color:#e3b341;font-size:1.5vw;font-family:var(--font-b);">Abrir enlace en una pestana nueva</a>';
+      }
     } else {
-      box.innerHTML = '<div style="font-size:2.4vw;margin-bottom:24px;font-family:Georgia,serif;">'+estado.titulo+'</div>'+
-        '<a href="'+estado.url+'" target="_blank" style="color:#e3b341;font-size:1.5vw;font-family:var(--font-b);">Abrir enlace en una pestana nueva</a>';
+      box.innerHTML = '';
     }
-  } else {
-    box.innerHTML = '';
-  }
+  });
 }
 function activarModoKiosk(){
   document.getElementById('pantallaProyeccionKiosk').classList.add('activo');
   actualizarPantallaKiosk();
-  window.addEventListener('storage', function(e){ if(e.key==='peniel_proyeccion_estado') actualizarPantallaKiosk(); });
+  if(_kioskIntervalo) clearInterval(_kioskIntervalo);
+  _kioskIntervalo = setInterval(actualizarPantallaKiosk, 1500);
 }
 document.getElementById('btnSalirKiosk').onclick = function(){
   document.getElementById('pantallaProyeccionKiosk').classList.remove('activo');
+  if(_kioskIntervalo){ clearInterval(_kioskIntervalo); _kioskIntervalo=null; }
   location.hash = '';
 };
 </script>
