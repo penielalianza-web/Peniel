@@ -819,7 +819,9 @@ tr:hover td{background:rgba(90,107,79,.05);}
       </div>
       <div class="toolbar">
         <button class="btn ghost small" onclick="exportMujerActual('excel')">Descargar Excel</button>
-        <button class="btn ghost small" onclick="exportMujerActual('pdf')">Descargar PDF</button>
+        <button class="btn ghost small" onclick="exportMujerActual('pdf')">Descargar PDF (informe ejecutivo)</button>
+        <button class="btn ghost small" onclick="exportMujerActual('word')">Descargar Word (informe ejecutivo)</button>
+        <button class="btn ghost small" onclick="imprimirInformeMujer()">Imprimir informe</button>
       </div>
       <div id="tablaMujer"></div>
     </section>
@@ -1012,9 +1014,16 @@ tr:hover td{background:rgba(90,107,79,.05);}
 
       <div class="proy-panel-card proy-panel-destacada">
         <div class="proy-panel-titulo">1. Transmitir</div>
-        <div class="proy-panel-ayuda">Abre la pantalla en el dispositivo conectado al proyector/TV y ponla en pantalla completa. <b>Cualquiera con esta app abierta puede controlar lo que se transmite</b> — el expositor desde su tablet o celular, y el equipo de sonido/proyeccion desde el suyo, al mismo tiempo, sin pisarse (el ultimo clic es el que se ve).</div>
+        <div class="proy-panel-ayuda">Abre la pantalla en el dispositivo conectado al proyector/TV y ponla en pantalla completa. <b>Cualquiera con esta app abierta puede controlar lo que se transmite</b> — el expositor desde su tablet o celular, y el equipo de sonido/proyeccion desde el suyo, al mismo tiempo, sin pisarse (el ultimo clic es el que se ve). Puedes usar varias pantallas independientes (ej. salon principal, salon de desbordamiento, sala de ninos) — cada una muestra su propio contenido.</div>
+        <div style="margin-bottom:10px;"><label style="font-size:11.5px;">Pantalla destino</label>
+          <select id="proyPantallaDestino" onchange="actualizarIndicadorEstadoProyeccion()">
+            <option value="1">Pantalla 1 (principal)</option>
+            <option value="2">Pantalla 2</option>
+            <option value="3">Pantalla 3</option>
+          </select>
+        </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn" id="btnAbrirPantallaProyeccion">Abrir pantalla de proyeccion</button>
+          <button class="btn" id="btnAbrirPantallaProyeccion">Abrir pantalla seleccionada</button>
           <button class="btn" id="btnTransmitir" style="background:var(--wine);">Transmitir...</button>
         </div>
         <div style="margin-top:12px;"><label style="font-size:11.5px;">Fondo para canciones y versiculos</label>
@@ -1033,7 +1042,7 @@ tr:hover td{background:rgba(90,107,79,.05);}
         </div>
         <div style="font-size:10.5px;color:var(--ink-dim);margin-top:6px;">En la pantalla de proyeccion: desliza el dedo hacia la izquierda o derecha para cambiar de diapositiva. Desliza hacia abajo para mostrar los botones (salir, pantalla completa, carrusel) sin que se vean durante la proyeccion.</div>
         <div style="margin-top:14px;padding:10px 14px;background:var(--parchment-2);border-radius:8px;font-size:12.5px;">
-          <b>Mostrando ahora:</b> <span id="proyEstadoActual">Cargando...</span>
+          <b>Mostrando ahora en Pantalla <span id="proyEstadoPantallaNum">1</span>:</b> <span id="proyEstadoActual">Cargando...</span>
           <button class="btn small ghost" style="margin-left:6px;padding:2px 8px;" onclick="actualizarIndicadorEstadoProyeccion()">Actualizar</button>
         </div>
         <div style="margin-top:10px;">
@@ -1939,7 +1948,7 @@ function mostrarApp(user){
     btn.style.display = '';
   });
   initApp();
-  if(location.hash==='#proyeccion') activarModoKiosk();
+  if(location.hash.indexOf('#proyeccion')===0) activarModoKiosk(location.hash.replace('#proyeccion','')||'1');
 }
 document.getElementById('loginBtn').onclick=function(){
   var email=document.getElementById('loginEmail').value.trim();
@@ -2425,7 +2434,7 @@ function loadAll(cb){
     _usuariosSistema = d || {};
     done();
   });
-  window.fbFetch(fbUrl('iglesia/ministerioMujerAMujer/movimientos'), {}, function(e,d){
+  window.fbFetch(fbUrl('ministerioMujerAMujer/movimientos'), {}, function(e,d){
     if(e) err=e;
     movimientosMujer = d ? Object.keys(d).map(function(k){ var o=d[k]; o.id=o.id||k; return o; }) : [];
     done();
@@ -6429,8 +6438,8 @@ document.getElementById('btnGuardarMovMujer').onclick = function(){
   if(!fecha || !descripcion || isNaN(valor) || valor<=0){ alert('Completa fecha, descripcion y un valor valido.'); return; }
   var id = editingMovMujerId || ('movmuj'+Date.now());
   var reg = {id:id, tipo:tipo, fecha:fecha, descripcion:descripcion, valor:valor, observaciones:document.getElementById('mujObservaciones').value.trim()};
-  window.fbFetch(fbUrl('iglesia/ministerioMujerAMujer/movimientos/'+id), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(reg)}, function(e){
-    if(e){ alert('Error al guardar: '+(e.message||e)); return; }
+  window.fbFetch(fbUrl('ministerioMujerAMujer/movimientos/'+id), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(reg)}, function(e){
+    if(e){ alert('Error al guardar.'); return; }
     var idx = movimientosMujer.findIndex(function(m){return m.id===id;});
     registrarAuditoria('mujerAmujer', idx>=0?'editar':'crear', descripcion+' - $'+valor.toFixed(2));
     if(idx>=0) movimientosMujer[idx]=reg; else movimientosMujer.push(reg);
@@ -6455,19 +6464,129 @@ function eliminarMovMujer(id){
   if(!esAdmin()){ alert('Solo el administrador puede eliminar registros.'); return; }
   if(!confirm('Eliminar este movimiento?')) return;
   var m = movimientosMujer.find(function(x){return x.id===id;});
-  window.fbFetch(fbUrl('iglesia/ministerioMujerAMujer/movimientos/'+id), {method:'DELETE'}, function(e){
+  window.fbFetch(fbUrl('ministerioMujerAMujer/movimientos/'+id), {method:'DELETE'}, function(e){
     if(e){ alert('Error al eliminar.'); return; }
     registrarAuditoria('mujerAmujer', 'eliminar', m ? (m.descripcion+' - $'+(m.valor||0).toFixed(2)) : id);
     movimientosMujer = movimientosMujer.filter(function(x){return x.id!==id;});
     renderMujerAMujer();
   });
 }
+function construirHtmlInformeMujer(list){
+  var ingresos = list.filter(function(m){return m.tipo==='ingreso';});
+  var gastos = list.filter(function(m){return m.tipo==='gasto';});
+  var totalIngresos = ingresos.reduce(function(s,m){return s+(m.valor||0);},0);
+  var totalGastos = gastos.reduce(function(s,m){return s+(m.valor||0);},0);
+  var saldo = totalIngresos - totalGastos;
+  var nombreIglesia = (iglesiaConfig && iglesiaConfig.nombre) ? iglesiaConfig.nombre : '';
+  var desdeF = document.getElementById('filtroDesdeMujer').value;
+  var hastaF = document.getElementById('filtroHastaMujer').value;
+  var periodoTxt = (desdeF||hastaF) ? ('Periodo: '+(desdeF||'inicio')+' al '+(hastaF||'hoy')) : 'Periodo: todos los registros';
+  function filas(lista, colorEtiqueta){
+    if(lista.length===0) return '<tr><td colspan="3" style="padding:8px;color:#888;text-align:center;">Sin registros</td></tr>';
+    return lista.map(function(m){
+      return '<tr><td style="padding:6px 8px;border-bottom:1px solid #eee;">'+m.fecha+'</td>'+
+        '<td style="padding:6px 8px;border-bottom:1px solid #eee;">'+m.descripcion+(m.observaciones?'<div style="font-size:10.5px;color:#777;">'+m.observaciones+'</div>':'')+'</td>'+
+        '<td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:right;color:'+colorEtiqueta+';font-weight:600;">$'+(m.valor||0).toFixed(2)+'</td></tr>';
+    }).join('');
+  }
+  return '<div style="font-family:Georgia,serif;max-width:800px;margin:0 auto;padding:32px;color:#222;">'+
+    '<div style="text-align:center;border-bottom:2px solid #7a3b3f;padding-bottom:16px;margin-bottom:20px;">'+
+      (nombreIglesia?'<div style="font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#b08a3e;">'+nombreIglesia+'</div>':'')+
+      '<h1 style="font-size:24px;margin:8px 0 4px;">Informe Ejecutivo — Ministerio Mujer a Mujer</h1>'+
+      '<div style="font-size:12px;color:#888;">'+periodoTxt+' &middot; Generado el '+new Date().toISOString().slice(0,10)+'</div>'+
+    '</div>'+
+    '<div style="display:flex;gap:14px;margin-bottom:26px;">'+
+      '<div style="flex:1;border:1px solid #ddd;border-radius:8px;padding:14px;text-align:center;">'+
+        '<div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px;">Ingresos totales</div>'+
+        '<div style="font-size:22px;font-weight:700;color:#5a6b4f;margin-top:4px;">$'+totalIngresos.toFixed(2)+'</div></div>'+
+      '<div style="flex:1;border:1px solid #ddd;border-radius:8px;padding:14px;text-align:center;">'+
+        '<div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px;">Gastos totales</div>'+
+        '<div style="font-size:22px;font-weight:700;color:#7a3b3f;margin-top:4px;">$'+totalGastos.toFixed(2)+'</div></div>'+
+      '<div style="flex:1;border:1px solid #ddd;border-radius:8px;padding:14px;text-align:center;background:#faf7f2;">'+
+        '<div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px;">Saldo</div>'+
+        '<div style="font-size:22px;font-weight:700;color:'+(saldo>=0?'#5a6b4f':'#7a3b3f')+';margin-top:4px;">$'+saldo.toFixed(2)+'</div></div>'+
+    '</div>'+
+    '<h2 style="font-size:15px;color:#5a6b4f;border-bottom:1px solid #ccc;padding-bottom:4px;">Detalle de Ingresos ('+ingresos.length+')</h2>'+
+    '<table style="width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:22px;"><thead><tr>'+
+      '<th style="text-align:left;padding:6px 8px;border-bottom:2px solid #5a6b4f;">Fecha</th><th style="text-align:left;padding:6px 8px;border-bottom:2px solid #5a6b4f;">Descripcion</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #5a6b4f;">Valor</th>'+
+    '</tr></thead><tbody>'+filas(ingresos,'#5a6b4f')+'</tbody></table>'+
+    '<h2 style="font-size:15px;color:#7a3b3f;border-bottom:1px solid #ccc;padding-bottom:4px;">Detalle de Gastos ('+gastos.length+')</h2>'+
+    '<table style="width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:26px;"><thead><tr>'+
+      '<th style="text-align:left;padding:6px 8px;border-bottom:2px solid #7a3b3f;">Fecha</th><th style="text-align:left;padding:6px 8px;border-bottom:2px solid #7a3b3f;">Descripcion</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #7a3b3f;">Valor</th>'+
+    '</tr></thead><tbody>'+filas(gastos,'#7a3b3f')+'</tbody></table>'+
+    '<div style="display:flex;justify-content:space-between;margin-top:50px;font-size:12px;text-align:center;">'+
+      '<div style="width:45%;"><div style="border-top:1px solid #333;padding-top:6px;">Firma responsable del ministerio</div></div>'+
+      '<div style="width:45%;"><div style="border-top:1px solid #333;padding-top:6px;">Firma Tesoreria / Pastor</div></div>'+
+    '</div>'+
+  '</div>';
+}
+function imprimirInformeMujer(){
+  if(_movMujerFiltrados.length===0){ alert('No hay movimientos para imprimir.'); return; }
+  var w = window.open('', '_blank');
+  w.document.write('<html><head><title>Informe Mujer a Mujer</title></head><body>'+construirHtmlInformeMujer(_movMujerFiltrados)+'</body></html>');
+  w.document.close(); w.focus();
+  setTimeout(function(){ w.print(); }, 300);
+}
 function exportMujerActual(formato){
+  if(_movMujerFiltrados.length===0){ alert('No hay movimientos para exportar.'); return; }
+  if(formato==='word'){
+    var blob = new Blob(['\ufeff<html><head><meta charset="utf-8"></head><body>'+construirHtmlInformeMujer(_movMujerFiltrados)+'</body></html>'], {type:'application/msword'});
+    var link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'informe_mujer_a_mujer.doc'; link.click();
+    return;
+  }
+  if(formato==='pdf'){
+    var list = _movMujerFiltrados;
+    var ingresos = list.filter(function(m){return m.tipo==='ingreso';});
+    var gastos = list.filter(function(m){return m.tipo==='gasto';});
+    var totalIngresos = ingresos.reduce(function(s,m){return s+(m.valor||0);},0);
+    var totalGastos = gastos.reduce(function(s,m){return s+(m.valor||0);},0);
+    var saldo = totalIngresos - totalGastos;
+    var nombreIglesia = (iglesiaConfig && iglesiaConfig.nombre) ? iglesiaConfig.nombre : '';
+    var doc = new window.jspdf.jsPDF();
+    var y = 16;
+    if(nombreIglesia){ doc.setFontSize(9); doc.setTextColor(176,138,62); doc.text(nombreIglesia.toUpperCase(), 105, y, {align:'center'}); y+=6; }
+    doc.setFontSize(17); doc.setTextColor(122,59,63); doc.setFont(undefined,'bold');
+    doc.text('Informe Ejecutivo', 105, y, {align:'center'}); y+=6;
+    doc.text('Ministerio Mujer a Mujer', 105, y, {align:'center'}); doc.setFont(undefined,'normal'); y+=7;
+    doc.setFontSize(9); doc.setTextColor(140);
+    doc.text('Generado el '+new Date().toISOString().slice(0,10), 105, y, {align:'center'}); y+=10;
+    doc.setTextColor(0);
+    doc.setFontSize(10); doc.setFont(undefined,'bold');
+    doc.text('Ingresos totales: $'+totalIngresos.toFixed(2), 14, y);
+    doc.text('Gastos totales: $'+totalGastos.toFixed(2), 90, y);
+    doc.text('Saldo: $'+saldo.toFixed(2), 160, y);
+    doc.setFont(undefined,'normal'); y+=10;
+    doc.setDrawColor(122,59,63); doc.line(14,y,196,y); y+=8;
+    doc.setFontSize(12); doc.setFont(undefined,'bold'); doc.text('Detalle de Ingresos ('+ingresos.length+')', 14, y); doc.setFont(undefined,'normal'); y+=6;
+    doc.setFontSize(9);
+    ingresos.forEach(function(m){
+      if(y>280){ doc.addPage(); y=18; }
+      doc.text(m.fecha+'  -  '+m.descripcion, 14, y);
+      doc.text('$'+(m.valor||0).toFixed(2), 190, y, {align:'right'});
+      y+=5;
+    });
+    y+=6;
+    if(y>270){ doc.addPage(); y=18; }
+    doc.setFontSize(12); doc.setFont(undefined,'bold'); doc.text('Detalle de Gastos ('+gastos.length+')', 14, y); doc.setFont(undefined,'normal'); y+=6;
+    doc.setFontSize(9);
+    gastos.forEach(function(m){
+      if(y>280){ doc.addPage(); y=18; }
+      doc.text(m.fecha+'  -  '+m.descripcion, 14, y);
+      doc.text('$'+(m.valor||0).toFixed(2), 190, y, {align:'right'});
+      y+=5;
+    });
+    y+=30;
+    if(y>270){ doc.addPage(); y=30; }
+    doc.line(20,y,90,y); doc.line(120,y,190,y);
+    doc.setFontSize(9);
+    doc.text('Firma responsable del ministerio', 20, y+5);
+    doc.text('Firma Tesoreria / Pastor', 120, y+5);
+    doc.save('informe_mujer_a_mujer.pdf');
+    return;
+  }
   var headers = ['Fecha','Tipo','Descripcion','Valor','Observaciones'];
   var rows = _movMujerFiltrados.map(function(m){ return [m.fecha, m.tipo==='ingreso'?'Ingreso':'Gasto', m.descripcion, (m.valor||0).toFixed(2), m.observaciones||'']; });
-  if(rows.length===0){ alert('No hay movimientos para exportar.'); return; }
   if(formato==='excel') exportExcel(headers, rows, 'mujer_a_mujer');
-  if(formato==='pdf') exportPDF('Ministerio Mujer a Mujer — Ingresos y Gastos', headers, rows, 'mujer_a_mujer');
 }
 
 /* ============ Cumpleanos ============ */
@@ -7930,24 +8049,39 @@ function eliminarPresentacion(id){
 function describirEstadoProyeccion(estado){
   if(!estado) return 'Nada proyectado aun';
   if(estado.modo==='versiculo') return 'Versiculo — '+(estado.ref||estado.texto.slice(0,40));
-  if(estado.modo==='texto') return 'Cancion / texto libre (diapositiva '+((estado.index||0)+1)+' de '+(estado.total||'?')+')';
-  if(estado.modo==='imagen') return 'Diapositiva de imagen (diapositiva '+((estado.index||0)+1)+' de '+(estado.total||'?')+')';
+  if(estado.modo==='texto') return 'Cancion / texto libre (una diapositiva)';
+  if(estado.modo==='panel') return 'Panel de la app (versiculo, anuncios)';
   if(estado.modo==='item') return (estado.embedUrl?'Diapositiva/Video — ':'Enlace externo — ')+estado.titulo;
   if(estado.modo==='blanco') return 'Pantalla en blanco';
   return 'Nada proyectado aun';
 }
-function enviarEstadoProyeccion(estado){
+function obtenerPantallaDestino(){
+  var sel = document.getElementById('proyPantallaDestino');
+  return sel ? sel.value : '1';
+}
+function rutaEstadoPantalla(numero){
+  return numero==='1' ? 'iglesia/proyeccionEstado' : 'iglesia/proyeccionEstado'+numero;
+}
+function enviarEstadoProyeccion(estado, pantallaForzada){
+  var pantalla = pantallaForzada || obtenerPantallaDestino();
   var indicador = document.getElementById('proyEstadoActual');
-  if(indicador) indicador.textContent = 'Enviando...';
-  window.fbFetch(fbUrl('iglesia/proyeccionEstado'), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(estado)}, function(e){
-    if(indicador) indicador.textContent = e ? 'Error al enviar — revisa tu conexion' : describirEstadoProyeccion(estado);
+  var indicadorNum = document.getElementById('proyEstadoPantallaNum');
+  if(indicador && pantalla===obtenerPantallaDestino()) indicador.textContent = 'Enviando...';
+  window.fbFetch(fbUrl(rutaEstadoPantalla(pantalla)), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(estado)}, function(e){
+    if(indicador && pantalla===obtenerPantallaDestino()){
+      indicador.textContent = e ? 'Error al enviar — revisa tu conexion' : describirEstadoProyeccion(estado);
+      if(indicadorNum) indicadorNum.textContent = pantalla;
+    }
   });
 }
 function actualizarIndicadorEstadoProyeccion(){
   var indicador = document.getElementById('proyEstadoActual');
+  var indicadorNum = document.getElementById('proyEstadoPantallaNum');
   var mini = document.getElementById('proyMiniatura');
   if(!indicador) return;
-  window.fbFetch(fbUrl('iglesia/proyeccionEstado'), {}, function(e,d){
+  var pantalla = obtenerPantallaDestino();
+  if(indicadorNum) indicadorNum.textContent = pantalla;
+  window.fbFetch(fbUrl(rutaEstadoPantalla(pantalla)), {}, function(e,d){
     var hora = new Date().toLocaleTimeString('es-EC', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
     indicador.textContent = (e ? 'No se pudo consultar' : describirEstadoProyeccion(d)) + ' (revisado '+hora+')';
     if(!mini) return;
@@ -8176,17 +8310,17 @@ function eliminarCanalActual(){
 }
 cargarCanalesCompartidos();
 setInterval(cargarCanalesCompartidos, 3000);
-var _pantallaProyeccionAbierta = false;
-function abrirPantallaProyeccionSinCambiarFoco(){
-  var ventanaNueva = window.open(location.origin+location.pathname+'#proyeccion', '_blank');
+var _pantallasAbiertas = {};
+function abrirPantallaProyeccion(numero){
+  var ventanaNueva = window.open(location.origin+location.pathname+'#proyeccion'+numero, '_blank');
   if(ventanaNueva){
     try{ ventanaNueva.blur(); }catch(e){}
     window.focus();
   }
-  _pantallaProyeccionAbierta = true;
+  _pantallasAbiertas[numero] = true;
 }
 document.getElementById('btnAbrirPantallaProyeccion').onclick = function(){
-  abrirPantallaProyeccionSinCambiarFoco();
+  abrirPantallaProyeccion(obtenerPantallaDestino());
 };
 document.getElementById('btnTransmitir').onclick = function(){
   var opciones = '';
@@ -8208,7 +8342,7 @@ document.getElementById('btnTransmitir').onclick = function(){
       return '<option value="item:'+p.id+'">'+(p.tipo==='video'?'Video: ':'Diapositivas: ')+p.titulo+'</option>';
     }).join('')+'</optgroup>';
   }
-  opciones += '<optgroup label="Otro"><option value="blanco">Pantalla en blanco</option></optgroup>';
+  opciones += '<optgroup label="Otro"><option value="blanco">Pantalla en blanco</option><option value="panel">Panel de la app (versiculo, anuncios)</option></optgroup>';
   document.getElementById('transmitirSelect').innerHTML = opciones;
   document.getElementById('modalTransmitir').classList.add('show');
   previsualizarTransmision();
@@ -8231,6 +8365,8 @@ function previsualizarTransmision(){
     mini.innerHTML = c ? '<div class="mini-texto '+claseFuente+' '+claseTamano+'">'+c.slides[c.index].replace(/</g,'&lt;').replace(/\n/g,'<br>')+'</div>' : '';
   } else if(val==='imagenes'){
     mini.innerHTML = _imagenesDeckActual ? '<img src="'+_imagenesDeckActual.imagenes[_imagenesDeckActual.index||0]+'" style="max-width:100%;max-height:100%;object-fit:contain;">' : '';
+  } else if(val==='panel'){
+    mini.innerHTML = '<span style="font-size:11px;">Panel de la app — versiculo, proximo evento y anuncios</span>';
   } else if(val.indexOf('item:')===0){
     var p = presentaciones.find(function(x){return x.id===val.slice(5);});
     mini.innerHTML = p ? '<span style="font-size:11px;">'+p.titulo+'</span>' : '';
@@ -8246,13 +8382,28 @@ document.getElementById('btnConfirmarTransmitir').onclick = function(){
   document.getElementById('modalTransmitir').classList.remove('show');
   if(val==='versiculo') proyectarVersiculoRapido();
   else if(val==='blanco') proyectarBlanco();
+  else if(val==='panel') proyectarPanelApp();
   else if(val.indexOf('canal:')===0) seleccionarCanalTexto(val.slice(6));
   else if(val.indexOf('item:')===0) proyectarItem(val.slice(5));
   else if(val==='imagenes') proyectarImagenActual();
-  if(!_pantallaProyeccionAbierta){
-    abrirPantallaProyeccionSinCambiarFoco();
+  var pantalla = obtenerPantallaDestino();
+  if(!_pantallasAbiertas[pantalla]){
+    abrirPantallaProyeccion(pantalla);
   }
 };
+function proyectarPanelApp(){
+  window.fbFetch(fbUrl('iglesia/anuncios'), {}, function(e1, anunciosData){
+    window.fbFetch(fbUrl('iglesia/eventos'), {}, function(e2, eventosData){
+      var hoy = new Date().toISOString().slice(0,10);
+      var listaAnuncios = anunciosData ? Object.keys(anunciosData).map(function(k){return anunciosData[k];}) : [];
+      var listaEventos = eventosData ? Object.keys(eventosData).map(function(k){return eventosData[k];}) : [];
+      var proximoEvento = listaEventos.filter(function(ev){return (ev.fechaInicio||'')>=hoy;}).sort(function(a,b){return (a.fechaInicio||'').localeCompare(b.fechaInicio||'');})[0];
+      var anunciosVigentes = listaAnuncios.filter(function(a){return !a.vence || a.vence>=hoy;}).sort(function(a,b){return (b.fecha||'').localeCompare(a.fecha||'');}).slice(0,4);
+      var verso = VERSICULOS_ALEATORIOS[Math.floor(Math.random()*VERSICULOS_ALEATORIOS.length)];
+      enviarEstadoProyeccion({modo:'panel', nombreIglesia:(iglesiaConfig&&iglesiaConfig.nombre)||'', verso:verso, proximoEvento:proximoEvento?{nombre:proximoEvento.nombre, fecha:proximoEvento.fechaInicio}:null, anuncios:anunciosVigentes.map(function(a){return {titulo:a.titulo, tipo:a.tipo};}), fondo:obtenerFondoElegido()});
+    });
+  });
+}
 function proyectarImagenActual(){
   if(!_imagenesDeckActual) return;
   var idx = _imagenesDeckActual.index||0;
@@ -8260,8 +8411,9 @@ function proyectarImagenActual(){
 }
 var _ultimoEstadoKioskJson = null;
 var _kioskIntervalo = null;
+var _kioskNumeroPantalla = '1';
 function actualizarPantallaKiosk(){
-  window.fbFetch(fbUrl('iglesia/proyeccionEstado'), {}, function(e, estado){
+  window.fbFetch(fbUrl(rutaEstadoPantalla(_kioskNumeroPantalla)), {}, function(e, estado){
     if(e) return;
     var estadoJson = JSON.stringify(estado||null);
     if(estadoJson===_ultimoEstadoKioskJson) return;
@@ -8278,6 +8430,16 @@ function actualizarPantallaKiosk(){
     } else if(estado.modo==='texto'){
       box.innerHTML = '<div class="proy-verso-texto '+claseFuente+' '+claseTamano+'">'+estado.texto+'</div>';
       box.style.pointerEvents = 'none';
+    } else if(estado.modo==='panel'){
+      box.style.pointerEvents = '';
+      var anunciosHtml = (estado.anuncios||[]).map(function(a){ return '<div style="font-size:1.6vw;margin:6px 0;padding:8px 16px;background:rgba(255,255,255,.08);border-radius:8px;">'+a.titulo+'</div>'; }).join('');
+      box.innerHTML = '<div style="max-width:80vw;">'+
+        (estado.nombreIglesia?'<div style="font-size:1.4vw;letter-spacing:2px;text-transform:uppercase;color:#e3b341;margin-bottom:10px;">'+estado.nombreIglesia+'</div>':'')+
+        '<div style="font-size:2.6vw;font-family:Georgia,serif;line-height:1.4;margin-bottom:8px;">'+(estado.verso?estado.verso.texto:'')+'</div>'+
+        (estado.verso?'<div style="font-size:1.5vw;color:#e3b341;margin-bottom:24px;">'+estado.verso.ref+'</div>':'')+
+        (estado.proximoEvento?'<div style="font-size:1.6vw;margin-top:20px;">Proximo evento: <b>'+estado.proximoEvento.nombre+'</b> — '+(estado.proximoEvento.fecha||'')+'</div>':'')+
+        (anunciosHtml?'<div style="margin-top:20px;">'+anunciosHtml+'</div>':'')+
+      '</div>';
     } else if(estado.modo==='imagen'){
       box.style.pointerEvents = '';
       box.innerHTML = '<img src="'+estado.src+'" style="max-width:96vw;max-height:88vh;object-fit:contain;border-radius:6px;">';
@@ -8304,7 +8466,7 @@ function kioskNavegarCancion(delta){
     c.index = nuevoIndex;
     window.fbFetch(fbUrl('iglesia/proyeccionCanales/'+raw.canalId), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(c)}, function(){});
     var textoHtml = c.slides[nuevoIndex].split('\n').map(function(l){return l.replace(/</g,'&lt;');}).join('<br>');
-    window.fbFetch(fbUrl('iglesia/proyeccionEstado'), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({modo:'texto', texto:textoHtml, canalId:raw.canalId, index:nuevoIndex, total:c.slides.length, fondo:raw.fondo||'negro'})}, function(){});
+    window.fbFetch(fbUrl(rutaEstadoPantalla(_kioskNumeroPantalla)), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({modo:'texto', texto:textoHtml, canalId:raw.canalId, index:nuevoIndex, total:c.slides.length, fondo:raw.fondo||'negro'})}, function(){});
   });
 }
 function kioskNavegarImagen(delta){
@@ -8313,7 +8475,7 @@ function kioskNavegarImagen(delta){
     var nuevoIndex = Math.max(0, Math.min(deck.imagenes.length-1, (deck.index||0)+delta));
     deck.index = nuevoIndex;
     window.fbFetch(fbUrl('iglesia/proyeccionImagenes'), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(deck)}, function(){});
-    window.fbFetch(fbUrl('iglesia/proyeccionEstado'), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({modo:'imagen', src:deck.imagenes[nuevoIndex], index:nuevoIndex, total:deck.imagenes.length})}, function(){});
+    window.fbFetch(fbUrl(rutaEstadoPantalla(_kioskNumeroPantalla)), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({modo:'imagen', src:deck.imagenes[nuevoIndex], index:nuevoIndex, total:deck.imagenes.length})}, function(){});
     if(document.getElementById('proyImagenesContador')) actualizarPanelImagenes(deck);
   });
 }
@@ -8436,7 +8598,7 @@ function irAImagenSlide(idx){
     if(e || !deck) return;
     deck.index = idx;
     window.fbFetch(fbUrl('iglesia/proyeccionImagenes'), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(deck)}, function(){});
-    window.fbFetch(fbUrl('iglesia/proyeccionEstado'), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({modo:'imagen', src:deck.imagenes[idx], index:idx, total:deck.imagenes.length})}, function(){});
+    window.fbFetch(fbUrl(rutaEstadoPantalla(_kioskNumeroPantalla)), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({modo:'imagen', src:deck.imagenes[idx], index:idx, total:deck.imagenes.length})}, function(){});
     actualizarPanelImagenes(deck);
   });
 }
@@ -8459,7 +8621,8 @@ if(!window._proyImagenesIntervalo){
     if(document.getElementById('view-proyeccion') && document.getElementById('view-proyeccion').classList.contains('active')) cargarImagenesCompartidas();
   }, 3000);
 }
-function activarModoKiosk(){
+function activarModoKiosk(numeroPantalla){
+  _kioskNumeroPantalla = numeroPantalla || '1';
   document.getElementById('pantallaProyeccionKiosk').classList.add('activo');
   actualizarPantallaKiosk();
   if(_kioskIntervalo) clearInterval(_kioskIntervalo);
@@ -8559,7 +8722,7 @@ function irACarruselImagen(idx){
     if(e || !deck) return;
     deck.index = idx;
     window.fbFetch(fbUrl('iglesia/proyeccionImagenes'), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(deck)}, function(){});
-    window.fbFetch(fbUrl('iglesia/proyeccionEstado'), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({modo:'imagen', src:deck.imagenes[idx], index:idx, total:deck.imagenes.length})}, function(){});
+    window.fbFetch(fbUrl(rutaEstadoPantalla(_kioskNumeroPantalla)), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({modo:'imagen', src:deck.imagenes[idx], index:idx, total:deck.imagenes.length})}, function(){});
     document.getElementById('proyKioskCarrusel').style.display = 'none';
   });
 }
@@ -8569,7 +8732,7 @@ function irACarruselCancion(canalId, idx){
     c.index = idx;
     window.fbFetch(fbUrl('iglesia/proyeccionCanales/'+canalId), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(c)}, function(){});
     var textoHtml = c.slides[idx].split('\n').map(function(l){return l.replace(/</g,'&lt;');}).join('<br>');
-    window.fbFetch(fbUrl('iglesia/proyeccionEstado'), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({modo:'texto', texto:textoHtml, canalId:canalId, index:idx, total:c.slides.length})}, function(){});
+    window.fbFetch(fbUrl(rutaEstadoPantalla(_kioskNumeroPantalla)), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({modo:'texto', texto:textoHtml, canalId:canalId, index:idx, total:c.slides.length})}, function(){});
     document.getElementById('proyKioskCarrusel').style.display = 'none';
   });
 }
