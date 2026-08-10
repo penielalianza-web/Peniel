@@ -2425,7 +2425,7 @@ function loadAll(cb){
     _usuariosSistema = d || {};
     done();
   });
-  window.fbFetch(fbUrl('ministerioMujerAMujer/movimientos'), {}, function(e,d){
+  window.fbFetch(fbUrl('iglesia/ministerioMujerAMujer/movimientos'), {}, function(e,d){
     if(e) err=e;
     movimientosMujer = d ? Object.keys(d).map(function(k){ var o=d[k]; o.id=o.id||k; return o; }) : [];
     done();
@@ -6429,8 +6429,8 @@ document.getElementById('btnGuardarMovMujer').onclick = function(){
   if(!fecha || !descripcion || isNaN(valor) || valor<=0){ alert('Completa fecha, descripcion y un valor valido.'); return; }
   var id = editingMovMujerId || ('movmuj'+Date.now());
   var reg = {id:id, tipo:tipo, fecha:fecha, descripcion:descripcion, valor:valor, observaciones:document.getElementById('mujObservaciones').value.trim()};
-  window.fbFetch(fbUrl('ministerioMujerAMujer/movimientos/'+id), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(reg)}, function(e){
-    if(e){ alert('Error al guardar.'); return; }
+  window.fbFetch(fbUrl('iglesia/ministerioMujerAMujer/movimientos/'+id), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(reg)}, function(e){
+    if(e){ alert('Error al guardar: '+(e.message||e)); return; }
     var idx = movimientosMujer.findIndex(function(m){return m.id===id;});
     registrarAuditoria('mujerAmujer', idx>=0?'editar':'crear', descripcion+' - $'+valor.toFixed(2));
     if(idx>=0) movimientosMujer[idx]=reg; else movimientosMujer.push(reg);
@@ -6455,7 +6455,7 @@ function eliminarMovMujer(id){
   if(!esAdmin()){ alert('Solo el administrador puede eliminar registros.'); return; }
   if(!confirm('Eliminar este movimiento?')) return;
   var m = movimientosMujer.find(function(x){return x.id===id;});
-  window.fbFetch(fbUrl('ministerioMujerAMujer/movimientos/'+id), {method:'DELETE'}, function(e){
+  window.fbFetch(fbUrl('iglesia/ministerioMujerAMujer/movimientos/'+id), {method:'DELETE'}, function(e){
     if(e){ alert('Error al eliminar.'); return; }
     registrarAuditoria('mujerAmujer', 'eliminar', m ? (m.descripcion+' - $'+(m.valor||0).toFixed(2)) : id);
     movimientosMujer = movimientosMujer.filter(function(x){return x.id!==id;});
