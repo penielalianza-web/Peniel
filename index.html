@@ -1058,7 +1058,26 @@ tr:hover td{background:rgba(90,107,79,.05);}
       </div>
 
       <div class="proy-panel-card">
-        <div class="proy-panel-titulo">4. Diapositivas y videos guardados</div>
+        <div class="proy-panel-titulo">4. Diapositivas de imagen (temporales)</div>
+        <div class="proy-panel-ayuda">Sube fotos o capturas de tus diapositivas (JPG/PNG) directo, sin depender de enlaces externos. Se guardan temporalmente para poder pasarlas durante el servicio, y las borras con un boton cuando termines — no se quedan guardadas para siempre.</div>
+        <input type="file" id="proyImagenesInput" accept="image/*" multiple style="margin-bottom:10px;">
+        <div class="toolbar">
+          <button class="btn" onclick="subirDiapositivasImagen()">Subir diapositivas</button>
+          <button class="btn ghost small" id="btnCerrarSesionDiapositivas" style="display:none;">Cerrar sesion (borrar estas diapositivas)</button>
+        </div>
+        <div id="proyImagenesEstado" style="font-size:12px;color:var(--ink-dim);margin-top:6px;"></div>
+        <div id="proyImagenesMiniaturas" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;"></div>
+        <div id="proyImagenesNav" style="display:none;">
+          <div style="display:flex;align-items:center;justify-content:center;gap:14px;padding:14px 0;">
+            <button class="btn" style="min-width:120px;" onclick="navegarImagenSlide(-1)">← Anterior</button>
+            <span id="proyImagenesContador" style="font-size:14px;font-weight:600;color:var(--ink-dim);min-width:110px;text-align:center;"></span>
+            <button class="btn" style="min-width:120px;" onclick="navegarImagenSlide(1)">Siguiente →</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="proy-panel-card">
+        <div class="proy-panel-titulo">5. Diapositivas y videos guardados (enlaces)</div>
         <div class="proy-panel-ayuda">Enlaces permanentes (Google Slides, YouTube, Google Drive, OneDrive) que quedan guardados para usar cada semana.</div>
         <button class="btn" id="btnNuevaPresentacion" style="margin-bottom:12px;">+ Nuevo elemento</button>
         <div id="tablaPresentaciones"></div>
@@ -1101,8 +1120,8 @@ tr:hover td{background:rgba(90,107,79,.05);}
 
 <div id="pantallaProyeccionKiosk">
   <button class="proy-salir" id="btnSalirKiosk">Salir de proyeccion</button>
-  <div class="proy-kiosk-tap-zona proy-kiosk-tap-izq" onclick="kioskNavegarCancion(-1)"></div>
-  <div class="proy-kiosk-tap-zona proy-kiosk-tap-der" onclick="kioskNavegarCancion(1)"></div>
+  <div class="proy-kiosk-tap-zona proy-kiosk-tap-izq" onclick="kioskNavegar(-1)"></div>
+  <div class="proy-kiosk-tap-zona proy-kiosk-tap-der" onclick="kioskNavegar(1)"></div>
   <div id="proyKioskContenido" style="position:relative;z-index:2;"><div style="font-size:2vw;color:#888;">Esperando contenido...</div></div>
 </div>
 
@@ -8117,6 +8136,9 @@ function actualizarPantallaKiosk(){
     } else if(estado.modo==='texto'){
       box.innerHTML = '<div class="proy-verso-texto" style="font-size:3.6vw;">'+estado.texto+'</div>';
       box.style.pointerEvents = 'none';
+    } else if(estado.modo==='imagen'){
+      box.style.pointerEvents = '';
+      box.innerHTML = '<img src="'+estado.src+'" style="max-width:96vw;max-height:88vh;object-fit:contain;border-radius:6px;">';
     } else if(estado.modo==='item'){
       box.style.pointerEvents = '';
       if(estado.embedUrl){
@@ -8143,12 +8165,126 @@ function kioskNavegarCancion(delta){
     window.fbFetch(fbUrl('iglesia/proyeccionEstado'), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({modo:'texto', texto:textoHtml, canalId:raw.canalId, index:nuevoIndex, total:c.slides.length, fondo:raw.fondo||'negro'})}, function(){});
   });
 }
+function kioskNavegarImagen(delta){
+  window.fbFetch(fbUrl('iglesia/proyeccionImagenes'), {}, function(e,deck){
+    if(e || !deck || !deck.imagenes || deck.imagenes.length===0) return;
+    var nuevoIndex = Math.max(0, Math.min(deck.imagenes.length-1, (deck.index||0)+delta));
+    deck.index = nuevoIndex;
+    window.fbFetch(fbUrl('iglesia/proyeccionImagenes'), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(deck)}, function(){});
+    window.fbFetch(fbUrl('iglesia/proyeccionEstado'), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({modo:'imagen', src:deck.imagenes[nuevoIndex], index:nuevoIndex, total:deck.imagenes.length})}, function(){});
+    if(document.getElementById('proyImagenesContador')) actualizarPanelImagenes(deck);
+  });
+}
+function kioskNavegar(delta){
+  var raw = _ultimoEstadoKioskJson ? JSON.parse(_ultimoEstadoKioskJson) : null;
+  if(!raw) return;
+  if(raw.modo==='texto') kioskNavegarCancion(delta);
+  else if(raw.modo==='imagen') kioskNavegarImagen(delta);
+}
+/* Subida de diapositivas de imagen (temporal) */
+function comprimirImagen(archivo, cb){
+  var lector = new FileReader();
+  lector.onload = function(ev){
+    var img = new Image();
+    img.onload = function(){
+      var maxAncho = 1280;
+      var escala = Math.min(1, maxAncho/img.width);
+      var canvas = document.createElement('canvas');
+      canvas.width = img.width*escala;
+      canvas.height = img.height*escala;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      cb(canvas.toDataURL('image/jpeg', 0.72));
+    };
+    img.src = ev.target.result;
+  };
+  lector.readAsDataURL(archivo);
+}
+function subirDiapositivasImagen(){
+  var input = document.getElementById('proyImagenesInput');
+  var archivos = Array.prototype.slice.call(input.files||[]);
+  if(archivos.length===0){ alert('Elige una o mas imagenes primero.'); return; }
+  var estadoBox = document.getElementById('proyImagenesEstado');
+  estadoBox.textContent = 'Procesando 0 de '+archivos.length+'...';
+  var resultados = [];
+  var i = 0;
+  function siguiente(){
+    if(i>=archivos.length){
+      var deck = {titulo:'Diapositivas', imagenes:resultados, index:0};
+      window.fbFetch(fbUrl('iglesia/proyeccionImagenes'), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(deck)}, function(e){
+        estadoBox.textContent = e ? 'Error al guardar. Intenta con menos imagenes o mas livianas.' : (resultados.length+' diapositiva(s) listas.');
+        if(!e) actualizarPanelImagenes(deck);
+      });
+      return;
+    }
+    comprimirImagen(archivos[i], function(dataUrl){
+      resultados.push(dataUrl);
+      i++;
+      estadoBox.textContent = 'Procesando '+i+' de '+archivos.length+'...';
+      siguiente();
+    });
+  }
+  siguiente();
+}
+function actualizarPanelImagenes(deck){
+  var mini = document.getElementById('proyImagenesMiniaturas');
+  var nav = document.getElementById('proyImagenesNav');
+  var contador = document.getElementById('proyImagenesContador');
+  var btnCerrar = document.getElementById('btnCerrarSesionDiapositivas');
+  if(!deck || !deck.imagenes || deck.imagenes.length===0){
+    mini.innerHTML = ''; nav.style.display = 'none'; btnCerrar.style.display = 'none';
+    return;
+  }
+  btnCerrar.style.display = '';
+  nav.style.display = '';
+  contador.textContent = 'Diapositiva '+((deck.index||0)+1)+' de '+deck.imagenes.length;
+  mini.innerHTML = deck.imagenes.map(function(src, idx){
+    var activo = idx===(deck.index||0);
+    return '<img src="'+src+'" style="width:64px;height:36px;object-fit:cover;border-radius:4px;cursor:pointer;border:2px solid '+(activo?'var(--wine)':'transparent')+';" onclick="irAImagenSlide('+idx+')">';
+  }).join('');
+}
+function navegarImagenSlide(delta){ kioskNavegarImagen(delta); }
+function irAImagenSlide(idx){
+  window.fbFetch(fbUrl('iglesia/proyeccionImagenes'), {}, function(e,deck){
+    if(e || !deck) return;
+    deck.index = idx;
+    window.fbFetch(fbUrl('iglesia/proyeccionImagenes'), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(deck)}, function(){});
+    window.fbFetch(fbUrl('iglesia/proyeccionEstado'), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({modo:'imagen', src:deck.imagenes[idx], index:idx, total:deck.imagenes.length})}, function(){});
+    actualizarPanelImagenes(deck);
+  });
+}
+document.getElementById('btnCerrarSesionDiapositivas').onclick = function(){
+  if(!confirm('Borrar estas diapositivas? Se quitaran de todos los dispositivos y de la pantalla si estan proyectadas.')) return;
+  window.fbFetch(fbUrl('iglesia/proyeccionImagenes'), {method:'DELETE'}, function(){
+    document.getElementById('proyImagenesEstado').textContent = 'Diapositivas borradas.';
+    actualizarPanelImagenes(null);
+    document.getElementById('proyImagenesInput').value = '';
+    proyectarBlanco();
+  });
+};
+window.fbFetch(fbUrl('iglesia/proyeccionImagenes'), {}, function(e,deck){ if(!e && deck) actualizarPanelImagenes(deck); });
 function activarModoKiosk(){
   document.getElementById('pantallaProyeccionKiosk').classList.add('activo');
   actualizarPantallaKiosk();
   if(_kioskIntervalo) clearInterval(_kioskIntervalo);
   _kioskIntervalo = setInterval(actualizarPantallaKiosk, 1500);
 }
+(function(){
+  var kiosk = document.getElementById('pantallaProyeccionKiosk');
+  var tx0=0, ty0=0;
+  kiosk.addEventListener('touchstart', function(ev){
+    if(ev.touches.length!==1) return;
+    tx0 = ev.touches[0].clientX; ty0 = ev.touches[0].clientY;
+  }, {passive:true});
+  kiosk.addEventListener('touchend', function(ev){
+    if(!ev.changedTouches || ev.changedTouches.length!==1) return;
+    var dx = ev.changedTouches[0].clientX - tx0;
+    var dy = ev.changedTouches[0].clientY - ty0;
+    if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.5){
+      kioskNavegar(dx<0 ? 1 : -1);
+    }
+  }, {passive:true});
+})();
 document.getElementById('btnSalirKiosk').onclick = function(){
   document.getElementById('pantallaProyeccionKiosk').classList.remove('activo');
   if(_kioskIntervalo){ clearInterval(_kioskIntervalo); _kioskIntervalo=null; }
