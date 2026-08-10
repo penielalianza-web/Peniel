@@ -301,6 +301,7 @@ tr:hover td{background:rgba(90,107,79,.05);}
     <button class="navbtn" data-view="anuncios">Anuncios</button>
     <button class="navbtn" data-view="auditoriaFinanciera">Auditoria Financiera</button>
     <button class="navbtn" data-view="proyeccion">Proyeccion</button>
+    <button class="navbtn" data-view="envivo">En Vivo</button>
     <button class="navbtn" data-view="auditoria">Auditoria</button>
     <button class="navbtn" data-view="usuarios" style="display:none;">Gestion de usuarios</button>
     <div class="verse-box" id="verseBox"></div>
@@ -1159,6 +1160,14 @@ tr:hover td{background:rgba(90,107,79,.05);}
         <button class="btn" id="btnNuevaPresentacion" style="margin-bottom:12px;">+ Nuevo elemento</button>
         <div id="tablaPresentaciones"></div>
       </div>
+    </section>
+
+    <section class="view" id="view-envivo">
+      <div class="view-head">
+        <div><h1>En Vivo</h1><div class="sub">Que se esta proyectando ahora mismo en cada pantalla — cualquiera con acceso puede cambiar diapositivas desde aqui</div></div>
+        <button class="btn ghost small" onclick="renderEnVivo()">Actualizar todo</button>
+      </div>
+      <div id="envivoGrid" class="kpi-grid"></div>
     </section>
 
 <div class="modal-backdrop" id="modalTransmitir">
@@ -2296,7 +2305,7 @@ function registrarAuditoria(area, accion, detalle, justificacion){
 document.querySelectorAll('.navbtn').forEach(function(btn){
   btn.addEventListener('click', function(){
     var view = btn.dataset.view;
-    if(view!=='panel' && view!=='auditoria' && view!=='usuarios' && !tieneAcceso(view)){
+    if(view!=='panel' && view!=='auditoria' && view!=='usuarios' && !tieneAcceso(view==='envivo'?'proyeccion':view)){
       alert('No tienes permiso para entrar a esta area. Pidele al administrador que te lo asigne desde Gestion de usuarios.');
       return;
     }
@@ -2323,6 +2332,7 @@ document.querySelectorAll('.navbtn').forEach(function(btn){
     if(btn.dataset.view==='anuncios') renderAnuncios();
     if(btn.dataset.view==='auditoriaFinanciera') renderAuditoriasFinancieras();
     if(btn.dataset.view==='proyeccion') renderProyeccion();
+    if(btn.dataset.view==='envivo') renderEnVivo();
   });
 });
 document.querySelectorAll('.subtab-btn').forEach(function(btn){
@@ -8141,10 +8151,10 @@ if(!window._proyMiniaturaIntervalo){
     if(document.getElementById('view-proyeccion') && document.getElementById('view-proyeccion').classList.contains('active')) actualizarIndicadorEstadoProyeccion();
   }, 3000);
 }
-function proyectarItem(id){
+function proyectarItem(id, pantallaForzada){
   var p = presentaciones.find(function(x){return x.id===id;});
   if(!p) return;
-  enviarEstadoProyeccion({modo:'item', titulo:p.titulo, url:p.url, embedUrl:detectarEmbedUrl(p.url)});
+  enviarEstadoProyeccion({modo:'item', titulo:p.titulo, url:p.url, embedUrl:detectarEmbedUrl(p.url)}, pantallaForzada);
 }
 function buscarVersiculoOnline(comparar){
   var q = document.getElementById('proyVersoBuscar').value.trim();
@@ -8204,8 +8214,8 @@ function proyectarVersiculoRapido(pantallaForzada){
   enviarEstadoProyeccion({modo:'versiculo', texto:texto, ref:ref, fondo:obtenerFondoElegido(), fuente:obtenerFuenteElegida(), tamano:obtenerTamanoElegido()}, pantallaForzada);
   if(pantallaForzada) mostrarEstadoRapido('✓ Versiculo enviado a Pantalla '+pantallaForzada+'.', false);
 }
-function proyectarBlanco(){
-  enviarEstadoProyeccion({modo:'blanco'});
+function proyectarBlanco(pantallaForzada){
+  enviarEstadoProyeccion({modo:'blanco'}, pantallaForzada);
 }
 var _canalesTexto = [];
 var _canalActivoId = null;
@@ -8416,6 +8426,60 @@ function previsualizarTransmision(){
 document.getElementById('btnCancelarTransmitir').onclick = function(){
   document.getElementById('modalTransmitir').classList.remove('show');
 };
+function proyectarCanalEspecifico(canalId, pantallaForzada){
+  var c = _canalesTexto.find(function(x){return x.id===canalId;});
+  if(!c || c.slides.length===0) return;
+  var textoHtml = c.slides[c.index].split('\n').map(function(l){return l.replace(/</g,'&lt;');}).join('<br>');
+  enviarEstadoProyeccion({modo:'texto', texto:textoHtml, canalId:c.id, index:c.index, total:c.slides.length, fondo:obtenerFondoElegido(), fuente:obtenerFuenteElegida(), tamano:obtenerTamanoElegido()}, pantallaForzada);
+}
+function renderEnVivo(){
+  var grid = document.getElementById('envivoGrid');
+  if(!grid) return;
+  grid.innerHTML = ['1','2','3','4','5'].map(function(n){
+    return '<div class="kpi-card" id="envivoCard'+n+'"><div class="label">Pantalla '+n+'</div><div style="font-size:12px;margin-top:6px;">Cargando...</div></div>';
+  }).join('');
+  ['1','2','3','4','5'].forEach(function(n){ cargarEstadoEnVivo(n); });
+}
+function cargarEstadoEnVivo(pantalla){
+  window.fbFetch(fbUrl(rutaEstadoPantalla(pantalla)), {}, function(e, estado){
+    var card = document.getElementById('envivoCard'+pantalla);
+    if(!card) return;
+    if(e){ card.innerHTML = '<div class="label">Pantalla '+pantalla+'</div><div style="font-size:12px;color:var(--wine);margin-top:6px;">Error al consultar</div>'; return; }
+    var descripcion = describirEstadoProyeccion(estado);
+    var navegable = estado && (estado.modo==='texto' || estado.modo==='imagen');
+    card.innerHTML = '<div class="label">Pantalla '+pantalla+'</div>'+
+      '<div style="font-size:12.5px;margin-top:6px;min-height:32px;">'+descripcion+'</div>'+
+      (navegable ? ('<div style="display:flex;gap:6px;margin-top:10px;">'+
+        '<button class="btn small ghost" onclick="enVivoNavegar(\''+pantalla+'\',-1)">← Anterior</button>'+
+        '<button class="btn small ghost" onclick="enVivoNavegar(\''+pantalla+'\',1)">Siguiente →</button>'+
+      '</div>') : '');
+  });
+}
+function enVivoNavegar(pantalla, delta){
+  window.fbFetch(fbUrl(rutaEstadoPantalla(pantalla)), {}, function(e, estado){
+    if(e || !estado) return;
+    if(estado.modo==='texto' && estado.canalId){
+      window.fbFetch(fbUrl('iglesia/proyeccionCanales/'+estado.canalId), {}, function(e2, c){
+        if(e2 || !c || !c.slides) return;
+        var nuevoIndex = Math.max(0, Math.min(c.slides.length-1, (c.index||0)+delta));
+        c.index = nuevoIndex;
+        window.fbFetch(fbUrl('iglesia/proyeccionCanales/'+estado.canalId), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(c)}, function(){});
+        var textoHtml = c.slides[nuevoIndex].split('\n').map(function(l){return l.replace(/</g,'&lt;');}).join('<br>');
+        enviarEstadoProyeccion({modo:'texto', texto:textoHtml, canalId:estado.canalId, index:nuevoIndex, total:c.slides.length, fondo:estado.fondo, fuente:estado.fuente, tamano:estado.tamano}, pantalla);
+        setTimeout(function(){ cargarEstadoEnVivo(pantalla); }, 400);
+      });
+    } else if(estado.modo==='imagen'){
+      window.fbFetch(fbUrl('iglesia/proyeccionImagenes'), {}, function(e2, deck){
+        if(e2 || !deck || !deck.imagenes) return;
+        var nuevoIndex = Math.max(0, Math.min(deck.imagenes.length-1, (estado.index||0)+delta));
+        deck.index = nuevoIndex;
+        window.fbFetch(fbUrl('iglesia/proyeccionImagenes'), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(deck)}, function(){});
+        enviarEstadoProyeccion({modo:'imagen', src:deck.imagenes[nuevoIndex], index:nuevoIndex, total:deck.imagenes.length}, pantalla);
+        setTimeout(function(){ cargarEstadoEnVivo(pantalla); }, 400);
+      });
+    }
+  });
+}
 document.getElementById('btnConfirmarTransmitir').onclick = function(){
   var val = document.getElementById('transmitirSelect').value;
   document.getElementById('modalTransmitir').classList.remove('show');
