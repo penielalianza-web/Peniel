@@ -7754,6 +7754,7 @@ function detectarEmbedUrl(url){
 }
 function renderProyeccion(){
   actualizarIndicadorEstadoProyeccion();
+  cargarCanalesCompartidos();
   var box = document.getElementById('tablaPresentaciones');
   if(presentaciones.length===0){ box.innerHTML = '<div class="empty">Aun no hay diapositivas o videos guardados.</div>'; return; }
   box.innerHTML = presentaciones.map(function(p){
@@ -7863,33 +7864,56 @@ function proyectarBlanco(){
 }
 var _canalesTexto = [];
 var _canalActivoId = null;
-var _canalActivoIdGuardado = null;
-var CANALES_STORAGE_KEY = 'peniel_canales_proyeccion';
-function guardarCanalesLocal(){
-  try{ localStorage.setItem(CANALES_STORAGE_KEY, JSON.stringify({canales:_canalesTexto, activoId:_canalActivoId})); }catch(e){}
-}
-function cargarCanalesLocal(){
-  try{
-    var raw = localStorage.getItem(CANALES_STORAGE_KEY);
-    if(raw){
-      var datos = JSON.parse(raw);
-      _canalesTexto = datos.canales || [];
-      _canalActivoIdGuardado = datos.activoId || null;
+function cargarCanalesCompartidos(cb){
+  window.fbFetch(fbUrl('iglesia/proyeccionCanales'), {}, function(e,d){
+    if(!e){
+      var elTextarea = document.getElementById('proyTextoLibre');
+      var enfocado = elTextarea && document.activeElement===elTextarea;
+      var nuevos = d ? Object.keys(d).map(function(k){ var o=d[k]; o.id=o.id||k; o.slides=o.slides||[]; o.index=o.index||0; return o; }) : [];
+      if(enfocado && _canalActivoId){
+        var localActivo = _canalesTexto.find(function(x){return x.id===_canalActivoId;});
+        var servidorActivo = nuevos.find(function(x){return x.id===_canalActivoId;});
+        if(localActivo && servidorActivo){ servidorActivo.texto = localActivo.texto; }
+      }
+      _canalesTexto = nuevos;
+      if(_canalActivoId && !_canalesTexto.some(function(c){return c.id===_canalActivoId;})){
+        _canalActivoId = null;
+        document.getElementById('proyCanalEditorWrap').style.display = 'none';
+      }
+      renderCanalesTabs();
+      if(_canalActivoId){
+        var activo = _canalesTexto.find(function(x){return x.id===_canalActivoId;});
+        if(activo){
+          document.getElementById('proyCanalEditorWrap').style.display = '';
+          if(!enfocado) document.getElementById('proyTextoLibre').value = activo.texto;
+          if(activo.slides.length>0){
+            document.getElementById('proyTextoLibreNav').style.display = '';
+            document.getElementById('proyTextoLibreContador').textContent = 'Diapositiva '+(activo.index+1)+' de '+activo.slides.length;
+          } else {
+            document.getElementById('proyTextoLibreNav').style.display = 'none';
+          }
+          if(!enfocado) previsualizarSlidesCanal();
+        }
+      }
     }
-  }catch(e){ _canalesTexto = []; }
+    if(cb) cb();
+  });
 }
-cargarCanalesLocal();
+function guardarCanalEnServidor(c){
+  window.fbFetch(fbUrl('iglesia/proyeccionCanales/'+c.id), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(c)}, function(){});
+}
 function crearCanalTexto(){
   var nombre = prompt('Nombre del canal (ej. el nombre de la cancion):', 'Cancion '+(_canalesTexto.length+1));
   if(nombre===null) return;
   var id = 'canal'+Date.now();
-  _canalesTexto.push({id:id, nombre:(nombre.trim()||'Sin nombre'), texto:'', slides:[], index:0});
-  guardarCanalesLocal();
+  var c = {id:id, nombre:(nombre.trim()||'Sin nombre'), texto:'', slides:[], index:0};
+  _canalesTexto.push(c);
+  guardarCanalEnServidor(c);
   seleccionarCanalTexto(id);
 }
 function renderCanalesTabs(){
   var box = document.getElementById('proyCanalesTabs');
-  if(_canalesTexto.length===0){ box.innerHTML = '<span style="font-size:12px;color:var(--ink-dim);">Aun no hay canales. Crea uno con "+ Nuevo canal".</span>'; return; }
+  if(_canalesTexto.length===0){ box.innerHTML = '<span style="font-size:12px;color:var(--ink-dim);">Aun no hay canales. Crea uno con "+ Nuevo canal" — se comparte al instante con cualquier otro dispositivo conectado.</span>'; return; }
   box.innerHTML = _canalesTexto.map(function(c){
     var activo = c.id===_canalActivoId;
     return '<button type="button" class="btn small '+(activo?'':'ghost')+'" onclick="seleccionarCanalTexto(\''+c.id+'\')">'+c.nombre+(c.slides.length?' ('+(c.index+1)+'/'+c.slides.length+')':'')+'</button>';
@@ -7944,7 +7968,7 @@ function actualizarSlidesCanal(){
   if(slides.length===0){ alert('Pega algun texto primero.'); return; }
   c.slides = slides;
   c.index = 0;
-  guardarCanalesLocal();
+  guardarCanalEnServidor(c);
   document.getElementById('proyTextoLibreNav').style.display = '';
   mostrarSlideTextoLibre();
   previsualizarSlidesCanal();
@@ -7962,14 +7986,15 @@ function navegarTextoLibre(delta){
   var c = _canalesTexto.find(function(x){return x.id===_canalActivoId;});
   if(!c || c.slides.length===0) return;
   c.index = Math.max(0, Math.min(c.slides.length-1, c.index+delta));
-  guardarCanalesLocal();
+  guardarCanalEnServidor(c);
   mostrarSlideTextoLibre();
 }
 function eliminarCanalActual(){
   if(!_canalActivoId) return;
-  if(!confirm('Quitar este canal?')) return;
-  _canalesTexto = _canalesTexto.filter(function(x){return x.id!==_canalActivoId;});
-  guardarCanalesLocal();
+  if(!confirm('Quitar este canal? Se quitara para todos los dispositivos conectados.')) return;
+  var idAEliminar = _canalActivoId;
+  window.fbFetch(fbUrl('iglesia/proyeccionCanales/'+idAEliminar), {method:'DELETE'}, function(){});
+  _canalesTexto = _canalesTexto.filter(function(x){return x.id!==idAEliminar;});
   _canalActivoId = _canalesTexto.length ? _canalesTexto[0].id : null;
   if(_canalActivoId){ seleccionarCanalTexto(_canalActivoId); }
   else {
@@ -7978,18 +8003,8 @@ function eliminarCanalActual(){
     renderCanalesTabs();
   }
 }
-if(_canalActivoIdGuardado && _canalesTexto.some(function(c){return c.id===_canalActivoIdGuardado;})){
-  _canalActivoId = _canalActivoIdGuardado;
-  var _cRestaurado = _canalesTexto.find(function(x){return x.id===_canalActivoId;});
-  document.getElementById('proyCanalEditorWrap').style.display = '';
-  document.getElementById('proyTextoLibre').value = _cRestaurado.texto;
-  if(_cRestaurado.slides.length>0){
-    document.getElementById('proyTextoLibreNav').style.display = '';
-    document.getElementById('proyTextoLibreContador').textContent = 'Diapositiva '+(_cRestaurado.index+1)+' de '+_cRestaurado.slides.length;
-  }
-  previsualizarSlidesCanal();
-}
-renderCanalesTabs();
+cargarCanalesCompartidos();
+setInterval(cargarCanalesCompartidos, 3000);
 document.getElementById('btnAbrirPantallaProyeccion').onclick = function(){
   window.open(location.origin+location.pathname+'#proyeccion', '_blank');
 };
