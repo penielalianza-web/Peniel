@@ -1197,6 +1197,7 @@ tr:hover td{background:rgba(90,107,79,.05);}
     <button class="proy-salir" id="btnSalirKiosk">Salir de proyeccion</button>
   </div>
   <div id="proyKioskContenido" style="position:relative;z-index:2;"><div style="font-size:2vw;color:#888;">Esperando contenido...</div></div>
+  <div id="proyKioskDebug" style="position:fixed;bottom:8px;left:10px;z-index:3;font-size:10px;color:rgba(255,255,255,.35);font-family:monospace;"></div>
 </div>
 
 <div id="proyKioskCarrusel" style="display:none;position:fixed;inset:0;background:rgba(10,10,10,.95);z-index:100000;overflow-y:auto;padding:70px 30px 30px;">
@@ -8442,7 +8443,10 @@ var _ultimoEstadoKioskJson = null;
 var _kioskIntervalo = null;
 var _kioskNumeroPantalla = '1';
 function actualizarPantallaKiosk(){
+  var debugBox = document.getElementById('proyKioskDebug');
   window.fbFetch(fbUrl(rutaEstadoPantalla(_kioskNumeroPantalla)), {}, function(e, estado){
+    var hora = new Date().toLocaleTimeString('es-EC', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+    if(debugBox) debugBox.textContent = 'Pantalla '+_kioskNumeroPantalla+' · '+(e ? ('ERROR: '+(e.message||e)) : 'ok')+' · '+hora;
     if(e) return;
     var estadoJson = JSON.stringify(estado||null);
     if(estadoJson===_ultimoEstadoKioskJson) return;
