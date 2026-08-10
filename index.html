@@ -7930,7 +7930,8 @@ function eliminarPresentacion(id){
 function describirEstadoProyeccion(estado){
   if(!estado) return 'Nada proyectado aun';
   if(estado.modo==='versiculo') return 'Versiculo — '+(estado.ref||estado.texto.slice(0,40));
-  if(estado.modo==='texto') return 'Cancion / texto libre (una diapositiva)';
+  if(estado.modo==='texto') return 'Cancion / texto libre (diapositiva '+((estado.index||0)+1)+' de '+(estado.total||'?')+')';
+  if(estado.modo==='imagen') return 'Diapositiva de imagen (diapositiva '+((estado.index||0)+1)+' de '+(estado.total||'?')+')';
   if(estado.modo==='item') return (estado.embedUrl?'Diapositiva/Video — ':'Enlace externo — ')+estado.titulo;
   if(estado.modo==='blanco') return 'Pantalla en blanco';
   return 'Nada proyectado aun';
@@ -8176,9 +8177,16 @@ function eliminarCanalActual(){
 cargarCanalesCompartidos();
 setInterval(cargarCanalesCompartidos, 3000);
 var _pantallaProyeccionAbierta = false;
-document.getElementById('btnAbrirPantallaProyeccion').onclick = function(){
-  window.open(location.origin+location.pathname+'#proyeccion', '_blank');
+function abrirPantallaProyeccionSinCambiarFoco(){
+  var ventanaNueva = window.open(location.origin+location.pathname+'#proyeccion', '_blank');
+  if(ventanaNueva){
+    try{ ventanaNueva.blur(); }catch(e){}
+    window.focus();
+  }
   _pantallaProyeccionAbierta = true;
+}
+document.getElementById('btnAbrirPantallaProyeccion').onclick = function(){
+  abrirPantallaProyeccionSinCambiarFoco();
 };
 document.getElementById('btnTransmitir').onclick = function(){
   var opciones = '';
@@ -8242,8 +8250,7 @@ document.getElementById('btnConfirmarTransmitir').onclick = function(){
   else if(val.indexOf('item:')===0) proyectarItem(val.slice(5));
   else if(val==='imagenes') proyectarImagenActual();
   if(!_pantallaProyeccionAbierta){
-    window.open(location.origin+location.pathname+'#proyeccion', '_blank');
-    _pantallaProyeccionAbierta = true;
+    abrirPantallaProyeccionSinCambiarFoco();
   }
 };
 function proyectarImagenActual(){
