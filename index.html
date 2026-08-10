@@ -8320,10 +8320,12 @@ setInterval(cargarCanalesCompartidos, 3000);
 var _pantallasAbiertas = {};
 function abrirPantallaProyeccion(numero){
   var ventanaNueva = window.open(location.origin+location.pathname+'#proyeccion'+numero+'-full', '_blank');
-  if(ventanaNueva){
-    try{ ventanaNueva.blur(); }catch(e){}
-    window.focus();
+  if(!ventanaNueva || ventanaNueva.closed || typeof ventanaNueva.closed==='undefined'){
+    alert('El navegador bloqueo la ventana emergente. Permite las ventanas emergentes para este sitio (icono en la barra de direcciones o en Configuracion del navegador) e intenta de nuevo.');
+    return;
   }
+  try{ ventanaNueva.blur(); }catch(e){}
+  window.focus();
   _pantallasAbiertas[numero] = true;
 }
 document.getElementById('btnTransmitir').onclick = function(){
@@ -8637,6 +8639,15 @@ function activarModoKiosk(numeroPantalla, intentarPantallaCompleta){
       var pedir = el.requestFullscreen || el.webkitRequestFullscreen;
       if(pedir){ try{ pedir.call(el); el.classList.add('proy-controles-ocultos'); }catch(e){} }
     }, 400);
+  }
+  if(!window._kioskTecladoActivo){
+    window._kioskTecladoActivo = true;
+    document.addEventListener('keydown', function(ev){
+      if(!document.getElementById('pantallaProyeccionKiosk').classList.contains('activo')) return;
+      if(ev.key==='ArrowRight'){ kioskNavegar(1); }
+      else if(ev.key==='ArrowLeft'){ kioskNavegar(-1); }
+      else if(ev.key==='ArrowDown' || ev.key==='ArrowUp'){ mostrarControlesKiosk(); }
+    });
   }
 }
 function estaEnPantallaCompleta(){
