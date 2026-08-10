@@ -184,17 +184,36 @@ tr:hover td{background:rgba(90,107,79,.05);}
 .proy-carrusel-item img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;}
 .proy-carrusel-numero{color:#fff;font-size:11px;padding:6px 8px;font-family:var(--font-b);display:flex;justify-content:space-between;align-items:center;}
 .proy-carrusel-item .proy-carrusel-texto{color:#eee;font-size:10.5px;padding:10px;line-height:1.3;max-height:70px;overflow:hidden;}
-#proyMiniatura{width:100%;max-width:320px;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px;font-family:Georgia,serif;position:relative;border:1px solid var(--line);}
-#proyMiniatura.proy-fondo-azul{background:radial-gradient(circle at 50% 15%, #24406e 0%, #0d1a33 55%, #060c1a 100%);}
-#proyMiniatura.proy-fondo-dorado{background:radial-gradient(circle at 50% 15%, #6b4a1f 0%, #2c1c0a 55%, #150d04 100%);}
-#proyMiniatura.proy-fondo-purpura{background:radial-gradient(circle at 50% 15%, #5a2472 0%, #2a0f3d 55%, #150620 100%);}
-#proyMiniatura.proy-fondo-verde{background:radial-gradient(circle at 50% 15%, #2e5340 0%, #12281c 55%, #0a1610 100%);}
-#proyMiniatura .mini-texto{font-size:11px;line-height:1.35;max-height:100%;overflow:hidden;}
-#proyMiniatura .mini-ref{font-size:9px;color:#e3b341;margin-top:6px;}
-#proyMiniatura iframe{width:100%;height:100%;border:none;pointer-events:none;}
+.proy-miniatura-caja{width:100%;max-width:320px;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px;font-family:Georgia,serif;position:relative;border:1px solid var(--line);}
+.proy-miniatura-caja.proy-fondo-azul{background:radial-gradient(circle at 50% 15%, #24406e 0%, #0d1a33 55%, #060c1a 100%);}
+.proy-miniatura-caja.proy-fondo-dorado{background:radial-gradient(circle at 50% 15%, #6b4a1f 0%, #2c1c0a 55%, #150d04 100%);}
+.proy-miniatura-caja.proy-fondo-purpura{background:radial-gradient(circle at 50% 15%, #5a2472 0%, #2a0f3d 55%, #150620 100%);}
+.proy-miniatura-caja.proy-fondo-verde{background:radial-gradient(circle at 50% 15%, #2e5340 0%, #12281c 55%, #0a1610 100%);}
+.proy-miniatura-caja.proy-fondo-amanecer{background:linear-gradient(180deg, #2a1a3d 0%, #6b3550 45%, #c96b3f 80%, #e8a34d 100%);}
+.proy-miniatura-caja.proy-fondo-cielo{background:radial-gradient(ellipse at 50% -10%, #3a5a8a 0%, #16233d 60%, #0a0f1a 100%);}
+.proy-miniatura-caja.proy-fondo-luz{background:radial-gradient(circle at 50% 0%, rgba(255,240,200,.5) 0%, rgba(120,90,40,.25) 25%, #1a1408 65%, #0a0805 100%);}
+.proy-miniatura-caja.proy-fondo-marfil{background:radial-gradient(circle at 50% 20%, #4a4436 0%, #221f18 60%, #100e0a 100%);}
+.proy-miniatura-caja.proy-fondo-vino{background:radial-gradient(circle at 50% 15%, #5a2030 0%, #2a0f16 55%, #140609 100%);}
+.proy-miniatura-caja .mini-texto{font-size:11px;line-height:1.35;max-height:100%;overflow:hidden;}
+.proy-miniatura-caja .mini-ref{font-size:9px;color:#e3b341;margin-top:6px;}
+.proy-miniatura-caja iframe{width:100%;height:100%;border:none;pointer-events:none;}
+#pantallaProyeccionKiosk.proy-fondo-amanecer{background:linear-gradient(180deg, #2a1a3d 0%, #6b3550 45%, #c96b3f 80%, #e8a34d 100%);}
+#pantallaProyeccionKiosk.proy-fondo-cielo{background:radial-gradient(ellipse at 50% -10%, #3a5a8a 0%, #16233d 60%, #0a0f1a 100%);}
+#pantallaProyeccionKiosk.proy-fondo-luz{background:radial-gradient(circle at 50% 0%, rgba(255,240,200,.5) 0%, rgba(120,90,40,.25) 25%, #1a1408 65%, #0a0805 100%);}
+#pantallaProyeccionKiosk.proy-fondo-marfil{background:radial-gradient(circle at 50% 20%, #4a4436 0%, #221f18 60%, #100e0a 100%);}
+#pantallaProyeccionKiosk.proy-fondo-vino{background:radial-gradient(circle at 50% 15%, #5a2030 0%, #2a0f16 55%, #140609 100%);}
 #pantallaProyeccionKiosk.activo{display:flex;}
 #pantallaProyeccionKiosk iframe{width:94vw;height:86vh;border:none;background:#fff;border-radius:6px;}
 .proy-verso-texto{font-size:4.2vw;line-height:1.45;font-family:Georgia,serif;max-width:92vw;}
+.proy-fuente-georgia{font-family:Georgia,serif;}
+.proy-fuente-sans{font-family:Arial,Helvetica,sans-serif;}
+.proy-fuente-bold{font-family:Arial,Helvetica,sans-serif;font-weight:800;}
+.proy-tamano-normal.proy-verso-texto{font-size:3.6vw;}
+.proy-tamano-grande.proy-verso-texto{font-size:4.6vw;}
+.proy-tamano-extra.proy-verso-texto{font-size:5.8vw;}
+.proy-miniatura-caja .proy-tamano-normal.mini-texto{font-size:11px;}
+.proy-miniatura-caja .proy-tamano-grande.mini-texto{font-size:13px;}
+.proy-miniatura-caja .proy-tamano-extra.mini-texto{font-size:15px;}
 .proy-verso-ref{font-size:2.1vw;margin-top:32px;color:#e3b341;font-family:Georgia,serif;}
 .proy-salir{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.35);padding:7px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-family:var(--font-b);white-space:nowrap;}
 .proy-salir:hover{background:rgba(255,255,255,.22);}
@@ -1004,15 +1023,20 @@ tr:hover td{background:rgba(90,107,79,.05);}
             <option value="dorado">Dorado amanecer</option>
             <option value="purpura">Purpura real</option>
             <option value="verde">Verde esperanza</option>
+            <option value="amanecer">Amanecer calido</option>
+            <option value="cielo">Cielo abierto</option>
+            <option value="luz">Luz desde lo alto</option>
+            <option value="marfil">Marfil suave</option>
+            <option value="vino">Vino profundo</option>
           </select>
         </div>
-        <div style="font-size:10.5px;color:var(--ink-dim);margin-top:6px;">En la pantalla de proyeccion, toca el lado izquierdo para retroceder y el lado derecho para avanzar la cancion — funciona con el dedo directo sobre la pantalla, ademas de los botones de aqui.</div>
+        <div style="font-size:10.5px;color:var(--ink-dim);margin-top:6px;">En la pantalla de proyeccion: desliza el dedo hacia la izquierda o derecha para cambiar de diapositiva. Desliza hacia abajo para mostrar los botones (salir, pantalla completa, carrusel) sin que se vean durante la proyeccion.</div>
         <div style="margin-top:14px;padding:10px 14px;background:var(--parchment-2);border-radius:8px;font-size:12.5px;">
           <b>Mostrando ahora:</b> <span id="proyEstadoActual">Cargando...</span>
         </div>
         <div style="margin-top:10px;">
           <div style="font-size:11px;color:var(--ink-dim);margin-bottom:5px;">Vista previa en vivo (se actualiza sola):</div>
-          <div id="proyMiniatura" class="proy-fondo-negro"></div>
+          <div id="proyMiniatura" class="proy-miniatura-caja proy-fondo-negro"></div>
         </div>
       </div>
 
@@ -1041,6 +1065,22 @@ tr:hover td{background:rgba(90,107,79,.05);}
       <div class="proy-panel-card">
         <div class="proy-panel-titulo">3. Canciones y textos (no se guardan)</div>
         <div class="proy-panel-ayuda">Crea un canal por cada cancion o tema. Copia la letra de internet y pegala tal cual — el sistema la divide en diapositivas automaticamente. Puedes tener varias canciones listas a la vez y saltar entre ellas con un clic.</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+          <div><label style="font-size:11.5px;">Estilo de letra</label>
+            <select id="proyFuenteSelect" onchange="actualizarEstiloLetra()">
+              <option value="georgia">Clasico (Georgia)</option>
+              <option value="sans">Moderno (sin serifas)</option>
+              <option value="bold">Negrita grande</option>
+            </select>
+          </div>
+          <div><label style="font-size:11.5px;">Tamano de letra</label>
+            <select id="proyTamanoSelect" onchange="actualizarEstiloLetra()">
+              <option value="normal">Normal</option>
+              <option value="grande">Grande</option>
+              <option value="extra">Extra grande</option>
+            </select>
+          </div>
+        </div>
         <div id="proyCanalesTabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;"></div>
         <button class="btn ghost small" onclick="crearCanalTexto()" style="margin-bottom:14px;">+ Nuevo canal</button>
         <div id="proyCanalEditorWrap" style="display:none;">
@@ -1093,9 +1133,11 @@ tr:hover td{background:rgba(90,107,79,.05);}
     <h2>¿Que quieres transmitir?</h2>
     <div class="form-grid">
       <div class="full"><label>Elige que enviar a la pantalla de proyeccion</label>
-        <select id="transmitirSelect"></select>
+        <select id="transmitirSelect" onchange="previsualizarTransmision()"></select>
       </div>
     </div>
+    <div style="font-size:11px;color:var(--ink-dim);margin-bottom:5px;">Vista previa:</div>
+    <div id="proyMiniaturaTransmitir" class="proy-fondo-negro"></div>
     <div class="modal-actions">
       <button class="btn ghost" id="btnCancelarTransmitir">Cancelar</button>
       <button class="btn" id="btnConfirmarTransmitir">Transmitir ahora</button>
@@ -7904,13 +7946,17 @@ function actualizarIndicadorEstadoProyeccion(){
   window.fbFetch(fbUrl('iglesia/proyeccionEstado'), {}, function(e,d){
     indicador.textContent = e ? 'No se pudo consultar' : describirEstadoProyeccion(d);
     if(!mini) return;
-    mini.className = 'proy-fondo-'+((d && d.fondo) || 'negro');
+    mini.className = 'proy-miniatura-caja proy-fondo-'+((d && d.fondo) || 'negro');
+    var claseFuente = 'proy-fuente-'+((d && d.fuente)||'georgia');
+    var claseTamano = 'proy-tamano-'+((d && d.tamano)||'normal');
     if(e || !d){
       mini.innerHTML = '<span style="font-size:11px;color:#888;">Nada transmitiendo</span>';
     } else if(d.modo==='versiculo'){
-      mini.innerHTML = '<div><div class="mini-texto">'+d.texto+'</div>'+(d.ref?'<div class="mini-ref">'+d.ref+'</div>':'')+'</div>';
+      mini.innerHTML = '<div><div class="mini-texto '+claseFuente+' '+claseTamano+'">'+d.texto+'</div>'+(d.ref?'<div class="mini-ref">'+d.ref+'</div>':'')+'</div>';
     } else if(d.modo==='texto'){
-      mini.innerHTML = '<div class="mini-texto">'+d.texto+'</div>';
+      mini.innerHTML = '<div class="mini-texto '+claseFuente+' '+claseTamano+'">'+d.texto+'</div>';
+    } else if(d.modo==='imagen'){
+      mini.innerHTML = '<img src="'+d.src+'" style="max-width:100%;max-height:100%;object-fit:contain;">';
     } else if(d.modo==='item'){
       mini.innerHTML = d.embedUrl ? '<iframe src="'+d.embedUrl+'"></iframe>' : '<span style="font-size:11px;">'+d.titulo+'</span>';
     } else {
@@ -7939,6 +7985,18 @@ function obtenerFondoElegido(){
   var sel = document.getElementById('proyFondoSelect');
   return sel ? sel.value : 'negro';
 }
+function obtenerFuenteElegida(){
+  var sel = document.getElementById('proyFuenteSelect');
+  return sel ? sel.value : 'georgia';
+}
+function obtenerTamanoElegido(){
+  var sel = document.getElementById('proyTamanoSelect');
+  return sel ? sel.value : 'normal';
+}
+function actualizarEstiloLetra(){
+  var c = _canalesTexto.find(function(x){return x.id===_canalActivoId;});
+  if(c && c.slides && c.slides.length>0) mostrarSlideTextoLibre();
+}
 function cambiarFondoProyeccion(){
   var kiosk = document.getElementById('pantallaProyeccionKiosk');
   if(kiosk){ kiosk.className = kiosk.classList.contains('activo') ? 'activo proy-fondo-'+obtenerFondoElegido() : ''; }
@@ -7947,7 +8005,7 @@ function proyectarVersiculoRapido(){
   var texto = document.getElementById('proyVersoTexto').value.trim();
   var ref = document.getElementById('proyVersoRef').value.trim();
   if(!texto){ alert('Escribe el texto del versiculo.'); return; }
-  enviarEstadoProyeccion({modo:'versiculo', texto:texto, ref:ref, fondo:obtenerFondoElegido()});
+  enviarEstadoProyeccion({modo:'versiculo', texto:texto, ref:ref, fondo:obtenerFondoElegido(), fuente:obtenerFuenteElegida(), tamano:obtenerTamanoElegido()});
 }
 function proyectarBlanco(){
   enviarEstadoProyeccion({modo:'blanco'});
@@ -8069,7 +8127,7 @@ function mostrarSlideTextoLibre(){
   if(!c || c.slides.length===0) return;
   document.getElementById('proyTextoLibreContador').textContent = 'Diapositiva '+(c.index+1)+' de '+c.slides.length;
   var textoHtml = c.slides[c.index].split('\n').map(function(l){return l.replace(/</g,'&lt;');}).join('<br>');
-  enviarEstadoProyeccion({modo:'texto', texto:textoHtml, canalId:c.id, index:c.index, total:c.slides.length, fondo:obtenerFondoElegido()});
+  enviarEstadoProyeccion({modo:'texto', texto:textoHtml, canalId:c.id, index:c.index, total:c.slides.length, fondo:obtenerFondoElegido(), fuente:obtenerFuenteElegida(), tamano:obtenerTamanoElegido()});
   renderCanalesTabs();
 }
 function navegarTextoLibre(delta){
@@ -8123,7 +8181,33 @@ document.getElementById('btnTransmitir').onclick = function(){
   opciones += '<optgroup label="Otro"><option value="blanco">Pantalla en blanco</option></optgroup>';
   document.getElementById('transmitirSelect').innerHTML = opciones;
   document.getElementById('modalTransmitir').classList.add('show');
+  previsualizarTransmision();
 };
+function previsualizarTransmision(){
+  var val = document.getElementById('transmitirSelect').value;
+  var mini = document.getElementById('proyMiniaturaTransmitir');
+  var claseFuente = 'proy-fuente-'+obtenerFuenteElegida();
+  var claseTamano = 'proy-tamano-'+obtenerTamanoElegido();
+  mini.className = 'proy-miniatura-caja proy-fondo-'+obtenerFondoElegido();
+  if(val==='versiculo'){
+    var texto = document.getElementById('proyVersoTexto').value.trim();
+    var ref = document.getElementById('proyVersoRef').value.trim();
+    mini.innerHTML = '<div><div class="mini-texto '+claseFuente+' '+claseTamano+'">'+texto+'</div>'+(ref?'<div class="mini-ref">'+ref+'</div>':'')+'</div>';
+  } else if(val==='blanco'){
+    mini.className = 'proy-miniatura-caja';
+    mini.innerHTML = '';
+  } else if(val.indexOf('canal:')===0){
+    var c = _canalesTexto.find(function(x){return x.id===val.slice(6);});
+    mini.innerHTML = c ? '<div class="mini-texto '+claseFuente+' '+claseTamano+'">'+c.slides[c.index].replace(/</g,'&lt;').replace(/\n/g,'<br>')+'</div>' : '';
+  } else if(val==='imagenes'){
+    mini.innerHTML = _imagenesDeckActual ? '<img src="'+_imagenesDeckActual.imagenes[_imagenesDeckActual.index||0]+'" style="max-width:100%;max-height:100%;object-fit:contain;">' : '';
+  } else if(val.indexOf('item:')===0){
+    var p = presentaciones.find(function(x){return x.id===val.slice(5);});
+    mini.innerHTML = p ? '<span style="font-size:11px;">'+p.titulo+'</span>' : '';
+  } else {
+    mini.innerHTML = '';
+  }
+}
 document.getElementById('btnCancelarTransmitir').onclick = function(){
   document.getElementById('modalTransmitir').classList.remove('show');
 };
@@ -8158,11 +8242,13 @@ function actualizarPantallaKiosk(){
     var claseFondo = 'proy-fondo-'+((estado && estado.fondo) || 'negro');
     kiosk.className = kiosk.classList.contains('activo') ? ('activo '+claseFondo) : '';
     if(!estado){ box.innerHTML = '<div style="font-size:2vw;color:#888;">Esperando contenido...</div>'; box.style.pointerEvents=''; return; }
+    var claseFuente = 'proy-fuente-'+(estado.fuente||'georgia');
+    var claseTamano = 'proy-tamano-'+(estado.tamano||'normal');
     if(estado.modo==='versiculo'){
-      box.innerHTML = '<div class="proy-verso-texto">'+estado.texto+'</div>'+(estado.ref?'<div class="proy-verso-ref">'+estado.ref+'</div>':'');
+      box.innerHTML = '<div class="proy-verso-texto '+claseFuente+' '+claseTamano+'">'+estado.texto+'</div>'+(estado.ref?'<div class="proy-verso-ref">'+estado.ref+'</div>':'');
       box.style.pointerEvents = 'none';
     } else if(estado.modo==='texto'){
-      box.innerHTML = '<div class="proy-verso-texto" style="font-size:3.6vw;">'+estado.texto+'</div>';
+      box.innerHTML = '<div class="proy-verso-texto '+claseFuente+' '+claseTamano+'">'+estado.texto+'</div>';
       box.style.pointerEvents = 'none';
     } else if(estado.modo==='imagen'){
       box.style.pointerEvents = '';
@@ -8379,7 +8465,7 @@ function mostrarControlesKiosk(){
     var dy = ev.changedTouches[0].clientY - ty0;
     if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.5){
       kioskNavegar(dx<0 ? 1 : -1);
-    } else if(Math.abs(dx)<15 && Math.abs(dy)<15){
+    } else if(dy>60 && dy>Math.abs(dx)*1.5){
       if(estaEnPantallaCompleta()){
         var salir = document.exitFullscreen || document.webkitExitFullscreen;
         if(salir) salir.call(document);
