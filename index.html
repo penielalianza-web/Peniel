@@ -178,9 +178,12 @@ tr:hover td{background:rgba(90,107,79,.05);}
 #pantallaProyeccionKiosk.proy-fondo-dorado{background:radial-gradient(circle at 50% 15%, #6b4a1f 0%, #2c1c0a 55%, #150d04 100%);}
 #pantallaProyeccionKiosk.proy-fondo-purpura{background:radial-gradient(circle at 50% 15%, #5a2472 0%, #2a0f3d 55%, #150620 100%);}
 #pantallaProyeccionKiosk.proy-fondo-verde{background:radial-gradient(circle at 50% 15%, #2e5340 0%, #12281c 55%, #0a1610 100%);}
-.proy-kiosk-tap-zona{position:absolute;top:0;bottom:0;width:50%;z-index:1;}
-.proy-kiosk-tap-izq{left:0;}
-.proy-kiosk-tap-der{right:0;}
+#pantallaProyeccionKiosk.proy-controles-ocultos #proyKioskControles{display:none !important;}
+.proy-carrusel-item{cursor:pointer;border-radius:8px;overflow:hidden;border:2px solid transparent;background:#1a1a1a;}
+.proy-carrusel-item.activo{border-color:var(--gold);}
+.proy-carrusel-item img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;}
+.proy-carrusel-numero{color:#fff;font-size:11px;padding:6px 8px;font-family:var(--font-b);display:flex;justify-content:space-between;align-items:center;}
+.proy-carrusel-item .proy-carrusel-texto{color:#eee;font-size:10.5px;padding:10px;line-height:1.3;max-height:70px;overflow:hidden;}
 #proyMiniatura{width:100%;max-width:320px;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px;font-family:Georgia,serif;position:relative;border:1px solid var(--line);}
 #proyMiniatura.proy-fondo-azul{background:radial-gradient(circle at 50% 15%, #24406e 0%, #0d1a33 55%, #060c1a 100%);}
 #proyMiniatura.proy-fondo-dorado{background:radial-gradient(circle at 50% 15%, #6b4a1f 0%, #2c1c0a 55%, #150d04 100%);}
@@ -1120,10 +1123,17 @@ tr:hover td{background:rgba(90,107,79,.05);}
 </div>
 
 <div id="pantallaProyeccionKiosk">
-  <button class="proy-salir" id="btnSalirKiosk">Salir de proyeccion</button>
-  <div class="proy-kiosk-tap-zona proy-kiosk-tap-izq" onclick="kioskNavegar(-1)"></div>
-  <div class="proy-kiosk-tap-zona proy-kiosk-tap-der" onclick="kioskNavegar(1)"></div>
+  <div id="proyKioskControles" style="position:fixed;top:16px;right:18px;z-index:3;display:flex;gap:8px;">
+    <button class="proy-salir" id="btnPantallaCompletaKiosk">Pantalla completa</button>
+    <button class="proy-salir" id="btnCarruselKiosk">Ver carrusel</button>
+    <button class="proy-salir" id="btnSalirKiosk">Salir de proyeccion</button>
+  </div>
   <div id="proyKioskContenido" style="position:relative;z-index:2;"><div style="font-size:2vw;color:#888;">Esperando contenido...</div></div>
+</div>
+
+<div id="proyKioskCarrusel" style="display:none;position:fixed;inset:0;background:rgba(10,10,10,.95);z-index:100000;overflow-y:auto;padding:70px 30px 30px;">
+  <button class="proy-salir" id="btnCerrarCarrusel" style="position:fixed;top:16px;right:18px;">Cerrar carrusel</button>
+  <div id="proyKioskCarruselGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:16px;max-width:1100px;margin:0 auto;"></div>
 </div>
 
 <div class="modal-backdrop" id="modalAnuncio">
@@ -8335,6 +8345,21 @@ function activarModoKiosk(){
   if(_kioskIntervalo) clearInterval(_kioskIntervalo);
   _kioskIntervalo = setInterval(actualizarPantallaKiosk, 1500);
 }
+function estaEnPantallaCompleta(){
+  return !!(document.fullscreenElement || document.webkitFullscreenElement);
+}
+document.getElementById('btnPantallaCompletaKiosk').onclick = function(){
+  var el = document.getElementById('pantallaProyeccionKiosk');
+  var pedir = el.requestFullscreen || el.webkitRequestFullscreen;
+  if(pedir) pedir.call(el);
+  el.classList.add('proy-controles-ocultos');
+};
+function ocultarControlesKiosk(){
+  document.getElementById('pantallaProyeccionKiosk').classList.add('proy-controles-ocultos');
+}
+function mostrarControlesKiosk(){
+  document.getElementById('pantallaProyeccionKiosk').classList.remove('proy-controles-ocultos');
+}
 (function(){
   var kiosk = document.getElementById('pantallaProyeccionKiosk');
   var tx0=0, ty0=0;
@@ -8348,14 +8373,86 @@ function activarModoKiosk(){
     var dy = ev.changedTouches[0].clientY - ty0;
     if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.5){
       kioskNavegar(dx<0 ? 1 : -1);
+    } else if(Math.abs(dx)<15 && Math.abs(dy)<15){
+      if(estaEnPantallaCompleta()){
+        var salir = document.exitFullscreen || document.webkitExitFullscreen;
+        if(salir) salir.call(document);
+      }
+      mostrarControlesKiosk();
     }
   }, {passive:true});
+  kiosk.addEventListener('click', function(ev){
+    if(ev.pointerType==='touch') return;
+    if(ev.target===kiosk || ev.target.id==='proyKioskContenido'){
+      if(estaEnPantallaCompleta()){
+        var salir = document.exitFullscreen || document.webkitExitFullscreen;
+        if(salir) salir.call(document);
+      }
+      mostrarControlesKiosk();
+    }
+  });
+  document.addEventListener('fullscreenchange', function(){ if(!estaEnPantallaCompleta()) mostrarControlesKiosk(); });
+  document.addEventListener('webkitfullscreenchange', function(){ if(!estaEnPantallaCompleta()) mostrarControlesKiosk(); });
 })();
 document.getElementById('btnSalirKiosk').onclick = function(){
   document.getElementById('pantallaProyeccionKiosk').classList.remove('activo');
+  if(estaEnPantallaCompleta()){ var salir = document.exitFullscreen || document.webkitExitFullscreen; if(salir) salir.call(document); }
   if(_kioskIntervalo){ clearInterval(_kioskIntervalo); _kioskIntervalo=null; }
   location.hash = '';
 };
+/* Carrusel numerado */
+document.getElementById('btnCarruselKiosk').onclick = function(){ abrirCarruselKiosk(); };
+document.getElementById('btnCerrarCarrusel').onclick = function(){ document.getElementById('proyKioskCarrusel').style.display = 'none'; };
+function abrirCarruselKiosk(){
+  var raw = _ultimoEstadoKioskJson ? JSON.parse(_ultimoEstadoKioskJson) : null;
+  var grid = document.getElementById('proyKioskCarruselGrid');
+  if(!raw || (raw.modo!=='texto' && raw.modo!=='imagen')){
+    grid.innerHTML = '<div style="color:#999;grid-column:1/-1;text-align:center;">El carrusel esta disponible cuando se proyecta una cancion o diapositivas de imagen.</div>';
+    document.getElementById('proyKioskCarrusel').style.display = 'block';
+    return;
+  }
+  if(raw.modo==='imagen'){
+    window.fbFetch(fbUrl('iglesia/proyeccionImagenes'), {}, function(e,deck){
+      if(e || !deck || !deck.imagenes){ return; }
+      grid.innerHTML = deck.imagenes.map(function(src, idx){
+        var activo = idx===(deck.index||0);
+        return '<div class="proy-carrusel-item'+(activo?' activo':'')+'" onclick="irACarruselImagen('+idx+')">'+
+          '<img src="'+src+'"><div class="proy-carrusel-numero"><span>Diapositiva '+(idx+1)+'</span></div></div>';
+      }).join('');
+      document.getElementById('proyKioskCarrusel').style.display = 'block';
+    });
+  } else {
+    window.fbFetch(fbUrl('iglesia/proyeccionCanales/'+raw.canalId), {}, function(e,c){
+      if(e || !c || !c.slides){ return; }
+      grid.innerHTML = c.slides.map(function(texto, idx){
+        var activo = idx===(c.index||0);
+        return '<div class="proy-carrusel-item'+(activo?' activo':'')+'" onclick="irACarruselCancion(\''+c.id+'\','+idx+')">'+
+          '<div class="proy-carrusel-numero"><span>Diapositiva '+(idx+1)+'</span></div>'+
+          '<div class="proy-carrusel-texto">'+texto.replace(/</g,'&lt;').replace(/\n/g,'<br>')+'</div></div>';
+      }).join('');
+      document.getElementById('proyKioskCarrusel').style.display = 'block';
+    });
+  }
+}
+function irACarruselImagen(idx){
+  window.fbFetch(fbUrl('iglesia/proyeccionImagenes'), {}, function(e,deck){
+    if(e || !deck) return;
+    deck.index = idx;
+    window.fbFetch(fbUrl('iglesia/proyeccionImagenes'), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(deck)}, function(){});
+    window.fbFetch(fbUrl('iglesia/proyeccionEstado'), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({modo:'imagen', src:deck.imagenes[idx], index:idx, total:deck.imagenes.length})}, function(){});
+    document.getElementById('proyKioskCarrusel').style.display = 'none';
+  });
+}
+function irACarruselCancion(canalId, idx){
+  window.fbFetch(fbUrl('iglesia/proyeccionCanales/'+canalId), {}, function(e,c){
+    if(e || !c || !c.slides) return;
+    c.index = idx;
+    window.fbFetch(fbUrl('iglesia/proyeccionCanales/'+canalId), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(c)}, function(){});
+    var textoHtml = c.slides[idx].split('\n').map(function(l){return l.replace(/</g,'&lt;');}).join('<br>');
+    window.fbFetch(fbUrl('iglesia/proyeccionEstado'), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({modo:'texto', texto:textoHtml, canalId:canalId, index:idx, total:c.slides.length})}, function(){});
+    document.getElementById('proyKioskCarrusel').style.display = 'none';
+  });
+}
 </script>
 
 </body>
