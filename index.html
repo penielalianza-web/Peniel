@@ -1021,6 +1021,7 @@ tr:hover td{background:rgba(90,107,79,.05);}
             <option value="2">Pantalla 2</option>
             <option value="3">Pantalla 3</option>
             <option value="4">Pantalla 4</option>
+            <option value="5">Pantalla 5</option>
           </select>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -1028,18 +1029,24 @@ tr:hover td{background:rgba(90,107,79,.05);}
           <button class="btn" onclick="abrirPantallaProyeccion('2')">📺 Pantalla 2</button>
           <button class="btn" onclick="abrirPantallaProyeccion('3')">📺 Pantalla 3</button>
           <button class="btn" onclick="abrirPantallaProyeccion('4')">📺 Pantalla 4</button>
+          <button class="btn" onclick="abrirPantallaProyeccion('5')">📺 Pantalla 5</button>
           <button class="btn" id="btnTransmitir" style="background:var(--wine);">Transmitir...</button>
         </div>
         <div style="font-size:10px;color:var(--ink-dim);margin-top:4px;">Cada boton abre esa pantalla e intenta ponerla en pantalla completa automaticamente (funciona en la mayoria de computadoras; si no, dale a "Pantalla completa" una vez ahi).</div>
         <div style="margin-top:14px;padding:12px 14px;background:var(--parchment-2);border-radius:8px;">
-          <div style="font-size:11.5px;font-weight:600;margin-bottom:8px;">Configuracion rapida de las 4 pantallas</div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <div style="font-size:11.5px;font-weight:600;margin-bottom:8px;">Configuracion rapida de las 5 pantallas</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
             <button class="btn small ghost" onclick="proyectarPanelApp('1')">Panel → Pantalla 1</button>
             <button class="btn small ghost" onclick="proyectarVersiculoRapido('2')">Versiculo → Pantalla 2</button>
             <button class="btn small ghost" onclick="enviarCancionActualAPantalla('3')">Cancion actual → Pantalla 3</button>
             <button class="btn small ghost" onclick="proyectarImagenActual('4')">Imagen actual → Pantalla 4</button>
           </div>
-          <div style="font-size:10px;color:var(--ink-dim);margin-top:6px;">Envia cada tipo de contenido a su pantalla dedicada de un clic — util para dejar las 4 listas al inicio del servicio.</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px;">
+            <select id="proyItemPantalla5" style="max-width:220px;"></select>
+            <button class="btn small ghost" onclick="enviarItemGuardadoAPantalla5()">Enviar → Pantalla 5</button>
+          </div>
+          <div id="proyQuickStatus" style="font-size:11px;margin-top:8px;min-height:16px;"></div>
+          <div style="font-size:10px;color:var(--ink-dim);margin-top:2px;">Envia cada tipo de contenido a su pantalla dedicada de un clic. Si un boton no tiene de donde tomar el contenido (ej. el campo de versiculo vacio, o ninguna imagen subida), te lo va a decir aqui mismo, sin tocar lo que ya esta proyectado.</div>
         </div>
         <div style="margin-top:12px;"><label style="font-size:11.5px;">Fondo para canciones y versiculos</label>
           <select id="proyFondoSelect" onchange="cambiarFondoProyeccion()">
@@ -8007,6 +8014,7 @@ function renderProyeccion(){
   actualizarIndicadorEstadoProyeccion();
   cargarCanalesCompartidos();
   cargarImagenesCompartidas();
+  llenarSelectorItemPantalla5();
   var box = document.getElementById('tablaPresentaciones');
   if(presentaciones.length===0){ box.innerHTML = '<div class="empty">Aun no hay diapositivas o videos guardados.</div>'; return; }
   box.innerHTML = presentaciones.map(function(p){
@@ -8183,11 +8191,18 @@ function aplicarClaseFondo(kiosk, fondo){
   Array.prototype.slice.call(kiosk.classList).forEach(function(c){ if(c.indexOf('proy-fondo-')===0) kiosk.classList.remove(c); });
   kiosk.classList.add('proy-fondo-'+fondo);
 }
+function mostrarEstadoRapido(msg, esError){
+  var box = document.getElementById('proyQuickStatus');
+  if(!box) return;
+  box.style.color = esError ? 'var(--wine)' : 'var(--sage)';
+  box.textContent = msg;
+}
 function proyectarVersiculoRapido(pantallaForzada){
   var texto = document.getElementById('proyVersoTexto').value.trim();
   var ref = document.getElementById('proyVersoRef').value.trim();
-  if(!texto){ alert('Escribe el texto del versiculo.'); return; }
+  if(!texto){ mostrarEstadoRapido('⚠ No se envio nada: escribe el texto del versiculo arriba primero.', true); return; }
   enviarEstadoProyeccion({modo:'versiculo', texto:texto, ref:ref, fondo:obtenerFondoElegido(), fuente:obtenerFuenteElegida(), tamano:obtenerTamanoElegido()}, pantallaForzada);
+  if(pantallaForzada) mostrarEstadoRapido('✓ Versiculo enviado a Pantalla '+pantallaForzada+'.', false);
 }
 function proyectarBlanco(){
   enviarEstadoProyeccion({modo:'blanco'});
@@ -8425,19 +8440,35 @@ function proyectarPanelApp(pantallaForzada){
       var anunciosVigentes = listaAnuncios.filter(function(a){return !a.vence || a.vence>=hoy;}).sort(function(a,b){return (b.fecha||'').localeCompare(a.fecha||'');}).slice(0,4);
       var verso = VERSICULOS_ALEATORIOS[Math.floor(Math.random()*VERSICULOS_ALEATORIOS.length)];
       enviarEstadoProyeccion({modo:'panel', nombreIglesia:(iglesiaConfig&&iglesiaConfig.nombre)||'', verso:verso, proximoEvento:proximoEvento?{nombre:proximoEvento.nombre, fecha:proximoEvento.fechaInicio}:null, anuncios:anunciosVigentes.map(function(a){return {titulo:a.titulo, tipo:a.tipo};}), fondo:obtenerFondoElegido()}, pantallaForzada);
+      if(pantallaForzada) mostrarEstadoRapido('✓ Panel enviado a Pantalla '+pantallaForzada+'.', false);
     });
   });
 }
 function proyectarImagenActual(pantallaForzada){
-  if(!_imagenesDeckActual){ alert('No hay diapositivas de imagen subidas todavia.'); return; }
+  if(!_imagenesDeckActual){ mostrarEstadoRapido('⚠ No se envio nada: no hay diapositivas de imagen subidas en la seccion 4 todavia.', true); return; }
   var idx = _imagenesDeckActual.index||0;
   enviarEstadoProyeccion({modo:'imagen', src:_imagenesDeckActual.imagenes[idx], index:idx, total:_imagenesDeckActual.imagenes.length}, pantallaForzada);
+  if(pantallaForzada) mostrarEstadoRapido('✓ Imagen enviada a Pantalla '+pantallaForzada+'.', false);
 }
 function enviarCancionActualAPantalla(pantallaForzada){
   var c = _canalesTexto.find(function(x){return x.id===_canalActivoId;});
-  if(!c || c.slides.length===0){ alert('Elige o carga un canal de cancion primero.'); return; }
+  if(!c || c.slides.length===0){ mostrarEstadoRapido('⚠ No se envio nada: elige o carga un canal de cancion primero en la seccion 3.', true); return; }
   var textoHtml = c.slides[c.index].split('\n').map(function(l){return l.replace(/</g,'&lt;');}).join('<br>');
   enviarEstadoProyeccion({modo:'texto', texto:textoHtml, canalId:c.id, index:c.index, total:c.slides.length, fondo:obtenerFondoElegido(), fuente:obtenerFuenteElegida(), tamano:obtenerTamanoElegido()}, pantallaForzada);
+  if(pantallaForzada) mostrarEstadoRapido('✓ "'+c.nombre+'" enviada a Pantalla '+pantallaForzada+'.', false);
+}
+function llenarSelectorItemPantalla5(){
+  var sel = document.getElementById('proyItemPantalla5');
+  if(!sel) return;
+  if(presentaciones.length===0){ sel.innerHTML = '<option value="">Ninguna diapositiva/video guardado aun</option>'; return; }
+  sel.innerHTML = presentaciones.map(function(p){ return '<option value="'+p.id+'">'+(p.tipo==='video'?'Video: ':'Diapositivas: ')+p.titulo+'</option>'; }).join('');
+}
+function enviarItemGuardadoAPantalla5(){
+  var id = document.getElementById('proyItemPantalla5').value;
+  var p = presentaciones.find(function(x){return x.id===id;});
+  if(!p){ mostrarEstadoRapido('⚠ No se envio nada: elige una diapositiva/video guardado de la lista, o crea uno en la seccion 5.', true); return; }
+  enviarEstadoProyeccion({modo:'item', titulo:p.titulo, url:p.url, embedUrl:detectarEmbedUrl(p.url)}, '5');
+  mostrarEstadoRapido('✓ "'+p.titulo+'" enviado a Pantalla 5.', false);
 }
 var _ultimoEstadoKioskJson = null;
 var _kioskIntervalo = null;
