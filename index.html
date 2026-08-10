@@ -7999,7 +7999,11 @@ function actualizarEstiloLetra(){
 }
 function cambiarFondoProyeccion(){
   var kiosk = document.getElementById('pantallaProyeccionKiosk');
-  if(kiosk){ kiosk.className = kiosk.classList.contains('activo') ? 'activo proy-fondo-'+obtenerFondoElegido() : ''; }
+  if(kiosk) aplicarClaseFondo(kiosk, obtenerFondoElegido());
+}
+function aplicarClaseFondo(kiosk, fondo){
+  Array.prototype.slice.call(kiosk.classList).forEach(function(c){ if(c.indexOf('proy-fondo-')===0) kiosk.classList.remove(c); });
+  kiosk.classList.add('proy-fondo-'+fondo);
 }
 function proyectarVersiculoRapido(){
   var texto = document.getElementById('proyVersoTexto').value.trim();
@@ -8239,8 +8243,7 @@ function actualizarPantallaKiosk(){
     _ultimoEstadoKioskJson = estadoJson;
     var box = document.getElementById('proyKioskContenido');
     var kiosk = document.getElementById('pantallaProyeccionKiosk');
-    var claseFondo = 'proy-fondo-'+((estado && estado.fondo) || 'negro');
-    kiosk.className = kiosk.classList.contains('activo') ? ('activo '+claseFondo) : '';
+    aplicarClaseFondo(kiosk, (estado && estado.fondo) || 'negro');
     if(!estado){ box.innerHTML = '<div style="font-size:2vw;color:#888;">Esperando contenido...</div>'; box.style.pointerEvents=''; return; }
     var claseFuente = 'proy-fuente-'+(estado.fuente||'georgia');
     var claseTamano = 'proy-tamano-'+(estado.tamano||'normal');
