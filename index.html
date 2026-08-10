@@ -973,9 +973,12 @@ tr:hover td{background:rgba(90,107,79,.05);}
       </div>
 
       <div class="proy-panel-card proy-panel-destacada">
-        <div class="proy-panel-titulo">1. Pantalla de proyeccion</div>
-        <div class="proy-panel-ayuda">Abre esto en el dispositivo conectado al proyector/TV (puede ser otro equipo distinto al que usas para controlar) y ponlo en pantalla completa. El control funciona desde cualquier dispositivo — celular, tablet o computadora — porque se sincroniza por internet.</div>
-        <button class="btn" id="btnAbrirPantallaProyeccion">Abrir pantalla de proyeccion</button>
+        <div class="proy-panel-titulo">1. Transmitir</div>
+        <div class="proy-panel-ayuda">Abre la pantalla en el dispositivo conectado al proyector/TV (puede ser otro equipo distinto al que usas para controlar) y ponla en pantalla completa. Luego usa "Transmitir" para elegir que se muestra — funciona desde cualquier dispositivo, porque se sincroniza por internet.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn" id="btnAbrirPantallaProyeccion">Abrir pantalla de proyeccion</button>
+          <button class="btn" id="btnTransmitir" style="background:var(--wine);">Transmitir...</button>
+        </div>
         <div style="margin-top:14px;padding:10px 14px;background:var(--parchment-2);border-radius:8px;font-size:12.5px;">
           <b>Mostrando ahora:</b> <span id="proyEstadoActual">Cargando...</span>
         </div>
@@ -1032,6 +1035,21 @@ tr:hover td{background:rgba(90,107,79,.05);}
         <div id="tablaPresentaciones"></div>
       </div>
     </section>
+
+<div class="modal-backdrop" id="modalTransmitir">
+  <div class="modal">
+    <h2>¿Que quieres transmitir?</h2>
+    <div class="form-grid">
+      <div class="full"><label>Elige que enviar a la pantalla de proyeccion</label>
+        <select id="transmitirSelect"></select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="btnCancelarTransmitir">Cancelar</button>
+      <button class="btn" id="btnConfirmarTransmitir">Transmitir ahora</button>
+    </div>
+  </div>
+</div>
 
 <div class="modal-backdrop" id="modalPresentacion">
   <div class="modal">
@@ -7844,12 +7862,24 @@ function proyectarBlanco(){
   enviarEstadoProyeccion({modo:'blanco'});
 }
 var _canalesTexto = [];
+var CANALES_STORAGE_KEY = 'peniel_canales_proyeccion';
+function guardarCanalesLocal(){
+  try{ localStorage.setItem(CANALES_STORAGE_KEY, JSON.stringify(_canalesTexto)); }catch(e){}
+}
+function cargarCanalesLocal(){
+  try{
+    var raw = localStorage.getItem(CANALES_STORAGE_KEY);
+    if(raw) _canalesTexto = JSON.parse(raw) || [];
+  }catch(e){ _canalesTexto = []; }
+}
+cargarCanalesLocal();
 var _canalActivoId = null;
 function crearCanalTexto(){
   var nombre = prompt('Nombre del canal (ej. el nombre de la cancion):', 'Cancion '+(_canalesTexto.length+1));
   if(nombre===null) return;
   var id = 'canal'+Date.now();
   _canalesTexto.push({id:id, nombre:(nombre.trim()||'Sin nombre'), texto:'', slides:[], index:0});
+  guardarCanalesLocal();
   seleccionarCanalTexto(id);
 }
 function renderCanalesTabs(){
@@ -7909,6 +7939,7 @@ function actualizarSlidesCanal(){
   if(slides.length===0){ alert('Pega algun texto primero.'); return; }
   c.slides = slides;
   c.index = 0;
+  guardarCanalesLocal();
   document.getElementById('proyTextoLibreNav').style.display = '';
   mostrarSlideTextoLibre();
   previsualizarSlidesCanal();
@@ -7926,12 +7957,14 @@ function navegarTextoLibre(delta){
   var c = _canalesTexto.find(function(x){return x.id===_canalActivoId;});
   if(!c || c.slides.length===0) return;
   c.index = Math.max(0, Math.min(c.slides.length-1, c.index+delta));
+  guardarCanalesLocal();
   mostrarSlideTextoLibre();
 }
 function eliminarCanalActual(){
   if(!_canalActivoId) return;
-  if(!confirm('Quitar este canal? El texto no estaba guardado, se perdera.')) return;
+  if(!confirm('Quitar este canal?')) return;
   _canalesTexto = _canalesTexto.filter(function(x){return x.id!==_canalActivoId;});
+  guardarCanalesLocal();
   _canalActivoId = _canalesTexto.length ? _canalesTexto[0].id : null;
   if(_canalActivoId){ seleccionarCanalTexto(_canalActivoId); }
   else {
@@ -7943,6 +7976,38 @@ function eliminarCanalActual(){
 renderCanalesTabs();
 document.getElementById('btnAbrirPantallaProyeccion').onclick = function(){
   window.open(location.origin+location.pathname+'#proyeccion', '_blank');
+};
+document.getElementById('btnTransmitir').onclick = function(){
+  var opciones = '';
+  var versoTexto = document.getElementById('proyVersoTexto').value.trim();
+  if(versoTexto){
+    var etiquetaVerso = document.getElementById('proyVersoRef').value.trim() || versoTexto.slice(0,40);
+    opciones += '<optgroup label="Versiculo biblico"><option value="versiculo">'+etiquetaVerso+'</option></optgroup>';
+  }
+  if(_canalesTexto.some(function(c){return c.slides.length>0;})){
+    opciones += '<optgroup label="Canciones y textos">'+_canalesTexto.filter(function(c){return c.slides.length>0;}).map(function(c){
+      return '<option value="canal:'+c.id+'">'+c.nombre+' (diapositiva '+(c.index+1)+' de '+c.slides.length+')</option>';
+    }).join('')+'</optgroup>';
+  }
+  if(presentaciones.length>0){
+    opciones += '<optgroup label="Diapositivas y videos guardados">'+presentaciones.map(function(p){
+      return '<option value="item:'+p.id+'">'+(p.tipo==='video'?'Video: ':'Diapositivas: ')+p.titulo+'</option>';
+    }).join('')+'</optgroup>';
+  }
+  opciones += '<optgroup label="Otro"><option value="blanco">Pantalla en blanco</option></optgroup>';
+  document.getElementById('transmitirSelect').innerHTML = opciones;
+  document.getElementById('modalTransmitir').classList.add('show');
+};
+document.getElementById('btnCancelarTransmitir').onclick = function(){
+  document.getElementById('modalTransmitir').classList.remove('show');
+};
+document.getElementById('btnConfirmarTransmitir').onclick = function(){
+  var val = document.getElementById('transmitirSelect').value;
+  document.getElementById('modalTransmitir').classList.remove('show');
+  if(val==='versiculo') proyectarVersiculoRapido();
+  else if(val==='blanco') proyectarBlanco();
+  else if(val.indexOf('canal:')===0) seleccionarCanalTexto(val.slice(6));
+  else if(val.indexOf('item:')===0) proyectarItem(val.slice(5));
 };
 var _ultimoEstadoKioskJson = null;
 var _kioskIntervalo = null;
