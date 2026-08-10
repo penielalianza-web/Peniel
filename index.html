@@ -181,11 +181,19 @@ tr:hover td{background:rgba(90,107,79,.05);}
 .proy-kiosk-tap-zona{position:absolute;top:0;bottom:0;width:50%;z-index:1;}
 .proy-kiosk-tap-izq{left:0;}
 .proy-kiosk-tap-der{right:0;}
+#proyMiniatura{width:100%;max-width:320px;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px;font-family:Georgia,serif;position:relative;border:1px solid var(--line);}
+#proyMiniatura.proy-fondo-azul{background:radial-gradient(circle at 50% 15%, #24406e 0%, #0d1a33 55%, #060c1a 100%);}
+#proyMiniatura.proy-fondo-dorado{background:radial-gradient(circle at 50% 15%, #6b4a1f 0%, #2c1c0a 55%, #150d04 100%);}
+#proyMiniatura.proy-fondo-purpura{background:radial-gradient(circle at 50% 15%, #5a2472 0%, #2a0f3d 55%, #150620 100%);}
+#proyMiniatura.proy-fondo-verde{background:radial-gradient(circle at 50% 15%, #2e5340 0%, #12281c 55%, #0a1610 100%);}
+#proyMiniatura .mini-texto{font-size:11px;line-height:1.35;max-height:100%;overflow:hidden;}
+#proyMiniatura .mini-ref{font-size:9px;color:#e3b341;margin-top:6px;}
+#proyMiniatura iframe{width:100%;height:100%;border:none;pointer-events:none;}
 #pantallaProyeccionKiosk.activo{display:flex;}
 #pantallaProyeccionKiosk iframe{width:94vw;height:86vh;border:none;background:#fff;border-radius:6px;}
 .proy-verso-texto{font-size:4.2vw;line-height:1.45;font-family:Georgia,serif;max-width:92vw;}
 .proy-verso-ref{font-size:2.1vw;margin-top:32px;color:#e3b341;font-family:Georgia,serif;}
-.proy-salir{position:fixed;top:16px;right:18px;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.35);padding:7px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-family:var(--font-b);}
+.proy-salir{position:fixed;top:16px;right:18px;z-index:3;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.35);padding:7px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-family:var(--font-b);}
 .proy-salir:hover{background:rgba(255,255,255,.22);}
 .proy-panel-card{background:var(--white);border:1px solid var(--line);border-radius:12px;padding:20px 22px;margin-bottom:18px;}
 .proy-panel-destacada{border-color:var(--wine-dim);background:rgba(122,59,63,.03);}
@@ -998,6 +1006,10 @@ tr:hover td{background:rgba(90,107,79,.05);}
         <div style="font-size:10.5px;color:var(--ink-dim);margin-top:6px;">En la pantalla de proyeccion, toca el lado izquierdo para retroceder y el lado derecho para avanzar la cancion — funciona con el dedo directo sobre la pantalla, ademas de los botones de aqui.</div>
         <div style="margin-top:14px;padding:10px 14px;background:var(--parchment-2);border-radius:8px;font-size:12.5px;">
           <b>Mostrando ahora:</b> <span id="proyEstadoActual">Cargando...</span>
+        </div>
+        <div style="margin-top:10px;">
+          <div style="font-size:11px;color:var(--ink-dim);margin-bottom:5px;">Vista previa en vivo (se actualiza sola):</div>
+          <div id="proyMiniatura" class="proy-fondo-negro"></div>
         </div>
       </div>
 
@@ -7855,10 +7867,29 @@ function enviarEstadoProyeccion(estado){
 }
 function actualizarIndicadorEstadoProyeccion(){
   var indicador = document.getElementById('proyEstadoActual');
+  var mini = document.getElementById('proyMiniatura');
   if(!indicador) return;
   window.fbFetch(fbUrl('iglesia/proyeccionEstado'), {}, function(e,d){
     indicador.textContent = e ? 'No se pudo consultar' : describirEstadoProyeccion(d);
+    if(!mini) return;
+    mini.className = 'proy-fondo-'+((d && d.fondo) || 'negro');
+    if(e || !d){
+      mini.innerHTML = '<span style="font-size:11px;color:#888;">Nada transmitiendo</span>';
+    } else if(d.modo==='versiculo'){
+      mini.innerHTML = '<div><div class="mini-texto">'+d.texto+'</div>'+(d.ref?'<div class="mini-ref">'+d.ref+'</div>':'')+'</div>';
+    } else if(d.modo==='texto'){
+      mini.innerHTML = '<div class="mini-texto">'+d.texto+'</div>';
+    } else if(d.modo==='item'){
+      mini.innerHTML = d.embedUrl ? '<iframe src="'+d.embedUrl+'"></iframe>' : '<span style="font-size:11px;">'+d.titulo+'</span>';
+    } else {
+      mini.innerHTML = '';
+    }
   });
+}
+if(!window._proyMiniaturaIntervalo){
+  window._proyMiniaturaIntervalo = setInterval(function(){
+    if(document.getElementById('view-proyeccion') && document.getElementById('view-proyeccion').classList.contains('active')) actualizarIndicadorEstadoProyeccion();
+  }, 3000);
 }
 function proyectarItem(id){
   var p = presentaciones.find(function(x){return x.id===id;});
