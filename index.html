@@ -9008,11 +9008,13 @@ function renderHistorialCuotas(){
     if(pb!==pa) return pb.localeCompare(pa);
     return a.nombre.localeCompare(b.nombre);
   });
-  box.innerHTML = '<table><thead><tr><th>Nombre</th><th>Mes</th><th>Año</th><th>Estado</th></tr></thead><tbody>'+
+  box.innerHTML = '<table><thead><tr><th>Nombre</th><th>Mes</th><th>Año</th><th>Estado</th><th></th></tr></thead><tbody>'+
     lista.map(function(r){
       var estado = !r.obligado ? '<span class="tag-chip">No obligado</span>' :
         (r.pagado ? '<span class="tag-chip" style="background:var(--sage);color:#fff;">Pagado</span>' : '<span class="tag-chip" style="background:var(--wine);color:#fff;">No pagado</span>');
-      return '<tr><td>'+r.nombre+'</td><td>'+MESES_CUMPLE[parseInt(r.mes,10)-1]+'</td><td>'+r.anio+'</td><td>'+estado+'</td></tr>';
+      var acciones = (r.pagado?'<button class="btn small danger" onclick="desmarcarCuotaPagada(\''+r.id+'\')">Deshacer pago</button> ':'')+
+        '<button class="btn small ghost" onclick="eliminarCuotaRegistro(\''+r.id+'\')">Eliminar</button>';
+      return '<tr><td>'+r.nombre+'</td><td>'+MESES_CUMPLE[parseInt(r.mes,10)-1]+'</td><td>'+r.anio+'</td><td>'+estado+'</td><td>'+acciones+'</td></tr>';
     }).join('')+'</tbody></table>';
 }
 function actualizarValorCuota(){
@@ -9160,7 +9162,8 @@ function renderTablaCuotasMes(){
         '<td><input type="checkbox" '+(r.obligado?'checked':'')+' onchange="cambiarObligadoCuota(\''+r.id+'\', this.checked)"></td>'+
         '<td>'+(!r.obligado?'<span class="tag-chip">No obligado</span>':(r.pagado?'<span class="tag-chip">Pagado ('+r.fechaPago+')</span>':'<span class="tag-chip">Pendiente</span>'))+'</td>'+
         '<td>'+(r.obligado && !r.pagado?'<button class="btn small" onclick="marcarCuotaPagada(\''+r.id+'\')">Marcar como pagado</button>':'')+
-          (r.pagado?'<button class="btn small danger" onclick="desmarcarCuotaPagada(\''+r.id+'\')">Deshacer pago</button>':'')+'</td></tr>';
+          (r.pagado?'<button class="btn small danger" onclick="desmarcarCuotaPagada(\''+r.id+'\')">Deshacer pago</button>':'')+
+          ' <button class="btn small ghost" onclick="eliminarCuotaRegistro(\''+r.id+'\')">Eliminar</button></td></tr>';
     }).join('')+'</tbody></table>';
 }
 function cambiarObligadoCuota(id, valor){
@@ -9206,6 +9209,30 @@ function desmarcarCuotaPagada(id){
       renderMujerAMujer();
     });
   });
+}
+function eliminarCuotaRegistro(id){
+  var r = cuotaRegistros.find(function(x){return x.id===id;});
+  if(!r) return;
+  var advertencia = r.pagado ? ' Esto tambien eliminara el ingreso de $'+(r.valor||0).toFixed(2)+' ya registrado.' : '';
+  if(!confirm('Eliminar esta cuota generada para '+r.nombre+' ('+MESES_CUMPLE[parseInt(r.mes,10)-1]+' '+r.anio+')?'+advertencia+' Esta accion no se puede deshacer.')) return;
+  function borrarRegistroCuota(){
+    window.fbFetch(fbUrl('iglesia/ministerioMujerAMujer/cuotaRegistros/'+id), {method:'DELETE'}, function(e){
+      if(e){ alert('Error al eliminar la cuota.'); return; }
+      registrarAuditoria('mujerAmujer', 'eliminar', 'Cuota especial eliminada: '+r.nombre+' — '+MESES_CUMPLE[parseInt(r.mes,10)-1]+' '+r.anio);
+      cuotaRegistros = cuotaRegistros.filter(function(x){return x.id!==id;});
+      renderTablaCuotasMes(); renderHistorialCuotas();
+    });
+  }
+  if(r.pagado && r.movimientoId){
+    window.fbFetch(fbUrl('iglesia/ministerioMujerAMujer/movimientos/'+r.movimientoId), {method:'DELETE'}, function(e){
+      if(e){ alert('Error al eliminar el ingreso asociado.'); return; }
+      movimientosMujer = movimientosMujer.filter(function(m){return m.id!==r.movimientoId;});
+      renderMujerAMujer();
+      borrarRegistroCuota();
+    });
+  } else {
+    borrarRegistroCuota();
+  }
 }
 function construirHtmlInformeCuotas(){
   var totalRecaudado = cuotaRegistros.filter(function(r){return r.pagado;}).reduce(function(s,r){return s+(r.valor||0);},0);
