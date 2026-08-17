@@ -806,25 +806,89 @@ tr:hover td{background:rgba(90,107,79,.05);}
     <section class="view" id="view-mujerAmujer">
       <div class="view-head">
         <div><h1>Ministerio Mujer a Mujer</h1><div class="sub">Informacion e ingresos/gastos independientes de esta area</div></div>
-        <button class="btn" id="btnNuevoMovMujer">+ Registrar movimiento</button>
-      </div>
-      <div class="cards">
-        <div class="card accent-sage"><div class="label">Ingresos totales</div><div class="num" id="mujIngresos">$0.00</div></div>
-        <div class="card accent-wine"><div class="label">Gastos totales</div><div class="num" id="mujGastos">$0.00</div></div>
-        <div class="card"><div class="label">Saldo</div><div class="num" id="mujSaldo">$0.00</div></div>
       </div>
       <div class="toolbar">
-        <input id="buscarMujer" placeholder="Buscar por descripcion...">
-        <input id="filtroDesdeMujer" type="date" title="Desde">
-        <input id="filtroHastaMujer" type="date" title="Hasta">
+        <button class="btn small" id="tabMujerIngresos" onclick="mostrarSubvistaMujer('ingresos')">Ingresos y Gastos</button>
+        <button class="btn small ghost" id="tabMujerCuotas" onclick="mostrarSubvistaMujer('cuotas')">Cuotas Especiales</button>
       </div>
-      <div class="toolbar">
-        <button class="btn ghost small" onclick="exportMujerActual('excel')">Descargar Excel</button>
-        <button class="btn ghost small" onclick="exportMujerActual('pdf')">Descargar PDF (informe ejecutivo)</button>
-        <button class="btn ghost small" onclick="exportMujerActual('word')">Descargar Word (informe ejecutivo)</button>
-        <button class="btn ghost small" onclick="imprimirInformeMujer()">Imprimir informe</button>
+
+      <div id="mujerSubIngresos">
+        <div class="view-head">
+          <div class="sub"></div>
+          <button class="btn" id="btnNuevoMovMujer">+ Registrar movimiento</button>
+        </div>
+        <div class="cards">
+          <div class="card accent-sage"><div class="label">Ingresos totales</div><div class="num" id="mujIngresos">$0.00</div></div>
+          <div class="card accent-wine"><div class="label">Gastos totales</div><div class="num" id="mujGastos">$0.00</div></div>
+          <div class="card"><div class="label">Saldo</div><div class="num" id="mujSaldo">$0.00</div></div>
+        </div>
+        <div class="toolbar">
+          <input id="buscarMujer" placeholder="Buscar por descripcion...">
+          <input id="filtroDesdeMujer" type="date" title="Desde">
+          <input id="filtroHastaMujer" type="date" title="Hasta">
+        </div>
+        <div class="toolbar">
+          <button class="btn ghost small" onclick="exportMujerActual('excel')">Descargar Excel</button>
+          <button class="btn ghost small" onclick="exportMujerActual('pdf')">Descargar PDF (informe ejecutivo)</button>
+          <button class="btn ghost small" onclick="exportMujerActual('word')">Descargar Word (informe ejecutivo)</button>
+          <button class="btn ghost small" onclick="imprimirInformeMujer()">Imprimir informe</button>
+        </div>
+        <div id="tablaMujer"></div>
       </div>
-      <div id="tablaMujer"></div>
+
+      <div id="mujerSubCuotas" style="display:none;">
+        <div class="proy-panel-card">
+          <div class="proy-panel-titulo">Valor de la cuota</div>
+          <div class="proy-panel-ayuda">Este es el valor que se asigna por defecto a los miembros nuevos. Cambiarlo aqui no afecta las cuotas ya generadas de meses anteriores.</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <span style="font-size:14px;">Valor actual: <b>$<span id="cuotaValorActualTexto">5.00</span></b></span>
+            <input type="number" id="cuotaNuevoValor" step="0.01" min="0" style="max-width:130px;" placeholder="Nuevo valor">
+            <button class="btn small" onclick="actualizarValorCuota()">Actualizar valor</button>
+          </div>
+        </div>
+
+        <div class="proy-panel-card">
+          <div class="proy-panel-titulo">Miembros con cuota especial</div>
+          <div class="proy-panel-ayuda">Solo los miembros que agregues aqui quedan obligados a la cuota. Elige desde que mes le aplica.</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:flex-end;">
+            <div><label style="font-size:11px;">Buscar miembro</label><br>
+              <input type="text" id="cuotaBuscarMiembro" placeholder="Nombre..." oninput="filtrarSelectMiembro('cuotaMiembroSelect', this.value, true)">
+            </div>
+            <div><label style="font-size:11px;">Miembro</label><br><select id="cuotaMiembroSelect"></select></div>
+            <div><label style="font-size:11px;">Activo desde</label><br><input type="month" id="cuotaActivoDesde"></div>
+            <button class="btn small" onclick="agregarMiembroCuota()">+ Agregar a cuotas</button>
+          </div>
+          <div id="tablaCuotaMiembros"></div>
+        </div>
+
+        <div class="proy-panel-card">
+          <div class="proy-panel-titulo">Obligaciones del mes</div>
+          <div class="proy-panel-ayuda">Genera la obligacion de pago del mes para todos los miembros activos en ese periodo. Puedes marcar a alguien como "No obligado" ese mes especifico sin quitarlo de la lista general, y marcar cuando pague — eso se suma automaticamente a los ingresos de Mujer a Mujer.</div>
+          <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:10px;">
+            <div><label style="font-size:11px;">Mes</label><br>
+              <select id="cuotaMesSelect" onchange="renderTablaCuotasMes()">
+                <option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option>
+                <option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option>
+                <option value="07">Julio</option><option value="08">Agosto</option><option value="09">Septiembre</option>
+                <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+              </select>
+            </div>
+            <div><label style="font-size:11px;">Año</label><br><input type="number" id="cuotaAnioSelect" style="max-width:100px;" onchange="renderTablaCuotasMes()"></div>
+            <button class="btn small" onclick="generarObligacionesMes()">Generar obligaciones de este mes</button>
+          </div>
+          <div id="tablaCuotasMes"></div>
+        </div>
+
+        <div class="proy-panel-card">
+          <div class="proy-panel-titulo">Informe ejecutivo de cuotas</div>
+          <div class="proy-panel-ayuda">Resumen de todas las cuotas generadas hasta ahora: recibidas, pendientes, y los totales.</div>
+          <div class="toolbar">
+            <button class="btn ghost small" onclick="imprimirInformeCuotas()">Imprimir</button>
+            <button class="btn ghost small" onclick="exportInformeCuotas('pdf')">Descargar PDF</button>
+            <button class="btn ghost small" onclick="exportInformeCuotas('word')">Descargar Word</button>
+          </div>
+        </div>
+      </div>
     </section>
 
 <div class="modal-backdrop" id="modalMovMujer">
@@ -2236,6 +2300,9 @@ var presupuestos = [];
 var presupuestoLineas = [];
 var presupuestoUsos = [];
 var movimientosMujer = [];
+var cuotaValorActual = 5;
+var cuotaMiembros = [];
+var cuotaRegistros = [];
 var editingMovMujerId = null;
 var predicas = [];
 var anuncios = [];
@@ -2362,7 +2429,7 @@ function updateVerse(view){
 function fbUrl(path){ return 'https://iglesiaalianzapeniel-24992-default-rtdb.firebaseio.com/'+path+'.json'; }
 
 function loadAll(cb){
-  var pending = 26, err=null;
+  var pending = 29, err=null;
   function done(){ if(--pending===0) cb(err); }
   window.fbFetch(fbUrl('iglesia/config/conceptos_oracion_extra'), {}, function(e,d){
     conceptosOracionExtra = Array.isArray(d) ? d : (d ? Object.keys(d).map(function(k){return d[k];}) : []);
@@ -2479,6 +2546,20 @@ function loadAll(cb){
   window.fbFetch(fbUrl('iglesia/ministerioMujerAMujer/movimientos'), {}, function(e,d){
     if(e) err=e;
     movimientosMujer = d ? Object.keys(d).map(function(k){ var o=d[k]; o.id=o.id||k; return o; }) : [];
+    done();
+  });
+  window.fbFetch(fbUrl('iglesia/ministerioMujerAMujer/cuotaValorActual'), {}, function(e,d){
+    if(!e && d) cuotaValorActual = d;
+    done();
+  });
+  window.fbFetch(fbUrl('iglesia/ministerioMujerAMujer/cuotaMiembros'), {}, function(e,d){
+    if(e) err=e;
+    cuotaMiembros = d ? Object.keys(d).map(function(k){ var o=d[k]; o.feligresId=o.feligresId||k; return o; }) : [];
+    done();
+  });
+  window.fbFetch(fbUrl('iglesia/ministerioMujerAMujer/cuotaRegistros'), {}, function(e,d){
+    if(e) err=e;
+    cuotaRegistros = d ? Object.keys(d).map(function(k){ var o=d[k]; o.id=o.id||k; return o; }) : [];
     done();
   });
   window.fbFetch(fbUrl('iglesia/predicas'), {}, function(e,d){
@@ -8879,6 +8960,266 @@ function irACarruselCancion(canalId, idx){
     window.fbFetch(fbUrl(rutaEstadoPantalla(_kioskNumeroPantalla)), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({modo:'texto', texto:textoHtml, canalId:canalId, index:idx, total:c.slides.length})}, function(){});
     document.getElementById('proyKioskCarrusel').style.display = 'none';
   });
+}
+
+/* ============ Cuotas Especiales (Mujer a Mujer) ============ */
+function mostrarSubvistaMujer(cual){
+  document.getElementById('mujerSubIngresos').style.display = cual==='ingresos' ? '' : 'none';
+  document.getElementById('mujerSubCuotas').style.display = cual==='cuotas' ? '' : 'none';
+  document.getElementById('tabMujerIngresos').className = 'btn small ' + (cual==='ingresos'?'':'ghost');
+  document.getElementById('tabMujerCuotas').className = 'btn small ' + (cual==='cuotas'?'':'ghost');
+  if(cual==='cuotas') renderCuotasEspeciales();
+}
+function renderCuotasEspeciales(){
+  document.getElementById('cuotaValorActualTexto').textContent = cuotaValorActual.toFixed(2);
+  filtrarSelectMiembro('cuotaMiembroSelect', '', true);
+  if(!document.getElementById('cuotaAnioSelect').value){
+    document.getElementById('cuotaAnioSelect').value = new Date().getFullYear();
+    document.getElementById('cuotaMesSelect').value = String(new Date().getMonth()+1).padStart(2,'0');
+  }
+  renderTablaCuotaMiembros();
+  renderTablaCuotasMes();
+}
+function actualizarValorCuota(){
+  var nuevo = parseFloat(document.getElementById('cuotaNuevoValor').value);
+  if(isNaN(nuevo) || nuevo<=0){ alert('Ingresa un valor valido.'); return; }
+  window.fbFetch(fbUrl('iglesia/ministerioMujerAMujer/cuotaValorActual'), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(nuevo)}, function(e){
+    if(e){ alert('Error al actualizar.'); return; }
+    cuotaValorActual = nuevo;
+    registrarAuditoria('mujerAmujer', 'editar', 'Valor de cuota especial actualizado a $'+nuevo.toFixed(2));
+    document.getElementById('cuotaNuevoValor').value = '';
+    renderCuotasEspeciales();
+  });
+}
+function agregarMiembroCuota(){
+  var fid = document.getElementById('cuotaMiembroSelect').value;
+  var desde = document.getElementById('cuotaActivoDesde').value;
+  if(!fid || !desde){ alert('Elige un miembro y el mes desde el cual aplica.'); return; }
+  if(cuotaMiembros.some(function(m){return m.feligresId===fid;})){ alert('Este miembro ya esta en la lista de cuotas.'); return; }
+  var f = feligreses.find(function(x){return x.id===fid;});
+  if(!f) return;
+  var reg = {feligresId:fid, nombre:f.nombres+' '+f.apellidos, valorCuota:cuotaValorActual, activoDesde:desde, activoHasta:null};
+  window.fbFetch(fbUrl('iglesia/ministerioMujerAMujer/cuotaMiembros/'+fid), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(reg)}, function(e){
+    if(e){ alert('Error al guardar.'); return; }
+    registrarAuditoria('mujerAmujer', 'crear', 'Cuota especial asignada a '+reg.nombre);
+    cuotaMiembros.push(reg);
+    document.getElementById('cuotaActivoDesde').value = '';
+    renderTablaCuotaMiembros();
+  });
+}
+function renderTablaCuotaMiembros(){
+  var box = document.getElementById('tablaCuotaMiembros');
+  if(cuotaMiembros.length===0){ box.innerHTML='<div class="empty">Aun no hay miembros con cuota especial asignada.</div>'; return; }
+  box.innerHTML = '<table><thead><tr><th>Nombre</th><th>Valor</th><th>Activo desde</th><th>Estado</th><th></th></tr></thead><tbody>'+
+    cuotaMiembros.map(function(m){
+      var activo = !m.activoHasta;
+      return '<tr><td>'+m.nombre+'</td><td>$'+(m.valorCuota||cuotaValorActual).toFixed(2)+'</td><td>'+m.activoDesde+'</td>'+
+        '<td>'+(activo?'<span class="tag-chip">Activo</span>':'<span class="tag-chip">Inactivo desde '+m.activoHasta+'</span>')+'</td>'+
+        '<td>'+(activo?'<button class="btn small danger" onclick="desactivarCuotaMiembro(\''+m.feligresId+'\')">Quitar de cuotas</button>':'<button class="btn small ghost" onclick="reactivarCuotaMiembro(\''+m.feligresId+'\')">Reactivar</button>')+'</td></tr>';
+    }).join('')+'</tbody></table>';
+}
+function desactivarCuotaMiembro(fid){
+  var mesDesde = prompt('¿Desde que mes ya NO esta obligado/a a pagar? (formato AAAA-MM, ejemplo: 2026-09)');
+  if(!mesDesde || !/^\d{4}-\d{2}$/.test(mesDesde)){ if(mesDesde) alert('Formato invalido. Usa AAAA-MM, ejemplo: 2026-09'); return; }
+  var m = cuotaMiembros.find(function(x){return x.feligresId===fid;});
+  if(!m) return;
+  m.activoHasta = mesDesde;
+  window.fbFetch(fbUrl('iglesia/ministerioMujerAMujer/cuotaMiembros/'+fid), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(m)}, function(e){
+    if(e){ alert('Error al guardar.'); return; }
+    registrarAuditoria('mujerAmujer', 'editar', 'Cuota especial de '+m.nombre+' inactiva desde '+mesDesde);
+    renderTablaCuotaMiembros();
+  });
+}
+function reactivarCuotaMiembro(fid){
+  var m = cuotaMiembros.find(function(x){return x.feligresId===fid;});
+  if(!m) return;
+  m.activoHasta = null;
+  window.fbFetch(fbUrl('iglesia/ministerioMujerAMujer/cuotaMiembros/'+fid), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(m)}, function(e){
+    if(e){ alert('Error al guardar.'); return; }
+    registrarAuditoria('mujerAmujer', 'editar', 'Cuota especial de '+m.nombre+' reactivada');
+    renderTablaCuotaMiembros();
+  });
+}
+function generarObligacionesMes(){
+  var mes = document.getElementById('cuotaMesSelect').value;
+  var anio = String(document.getElementById('cuotaAnioSelect').value);
+  if(!mes || !anio){ alert('Elige mes y año.'); return; }
+  var periodo = anio+'-'+mes;
+  var candidatos = cuotaMiembros.filter(function(m){
+    return m.activoDesde<=periodo && (!m.activoHasta || m.activoHasta>periodo);
+  });
+  if(candidatos.length===0){ alert('No hay miembros activos para ese periodo.'); return; }
+  var pendientes = candidatos.length;
+  var creados = 0;
+  candidatos.forEach(function(m){
+    var id = m.feligresId+'_'+anio+'_'+mes;
+    if(cuotaRegistros.some(function(r){return r.id===id;})){ pendientes--; if(pendientes===0) terminar(); return; }
+    var reg = {id:id, feligresId:m.feligresId, nombre:m.nombre, anio:anio, mes:mes, valor:m.valorCuota||cuotaValorActual, obligado:true, pagado:false, fechaPago:'', movimientoId:''};
+    window.fbFetch(fbUrl('iglesia/ministerioMujerAMujer/cuotaRegistros/'+id), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(reg)}, function(e){
+      if(!e){ cuotaRegistros.push(reg); creados++; }
+      pendientes--;
+      if(pendientes===0) terminar();
+    });
+  });
+  function terminar(){
+    registrarAuditoria('mujerAmujer', 'crear', 'Obligaciones de cuota generadas para '+MESES_CUMPLE[parseInt(mes,10)-1]+' '+anio+' ('+creados+' nueva(s))');
+    renderTablaCuotasMes();
+  }
+}
+function renderTablaCuotasMes(){
+  var mesEl = document.getElementById('cuotaMesSelect');
+  var anioEl = document.getElementById('cuotaAnioSelect');
+  if(!mesEl || !anioEl) return;
+  var mes = mesEl.value;
+  var anio = String(anioEl.value);
+  var lista = cuotaRegistros.filter(function(r){return String(r.anio)===anio && r.mes===mes;});
+  var box = document.getElementById('tablaCuotasMes');
+  if(!box) return;
+  if(lista.length===0){ box.innerHTML = '<div class="empty">No hay obligaciones generadas para este mes. Usa "Generar obligaciones de este mes".</div>'; return; }
+  box.innerHTML = '<table><thead><tr><th>Nombre</th><th>Valor</th><th>Obligado</th><th>Estado</th><th></th></tr></thead><tbody>'+
+    lista.map(function(r){
+      return '<tr><td>'+r.nombre+'</td><td>$'+(r.valor||0).toFixed(2)+'</td>'+
+        '<td><input type="checkbox" '+(r.obligado?'checked':'')+' onchange="cambiarObligadoCuota(\''+r.id+'\', this.checked)"></td>'+
+        '<td>'+(!r.obligado?'<span class="tag-chip">No obligado</span>':(r.pagado?'<span class="tag-chip">Pagado ('+r.fechaPago+')</span>':'<span class="tag-chip">Pendiente</span>'))+'</td>'+
+        '<td>'+(r.obligado && !r.pagado?'<button class="btn small" onclick="marcarCuotaPagada(\''+r.id+'\')">Marcar como pagado</button>':'')+
+          (r.pagado?'<button class="btn small danger" onclick="desmarcarCuotaPagada(\''+r.id+'\')">Deshacer pago</button>':'')+'</td></tr>';
+    }).join('')+'</tbody></table>';
+}
+function cambiarObligadoCuota(id, valor){
+  var r = cuotaRegistros.find(function(x){return x.id===id;});
+  if(!r) return;
+  r.obligado = valor;
+  window.fbFetch(fbUrl('iglesia/ministerioMujerAMujer/cuotaRegistros/'+id), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(r)}, function(e){
+    if(e){ alert('Error al guardar.'); return; }
+    registrarAuditoria('mujerAmujer', 'editar', 'Cuota de '+r.nombre+' ('+MESES_CUMPLE[parseInt(r.mes,10)-1]+' '+r.anio+') marcada como '+(valor?'obligada':'no obligada'));
+    renderTablaCuotasMes();
+  });
+}
+function marcarCuotaPagada(id){
+  var r = cuotaRegistros.find(function(x){return x.id===id;});
+  if(!r) return;
+  var movId = 'movmujcuota'+r.id;
+  var movimiento = {id:movId, tipo:'ingreso', fecha:new Date().toISOString().slice(0,10), descripcion:'Cuota especial '+MESES_CUMPLE[parseInt(r.mes,10)-1]+' '+r.anio+' - '+r.nombre, valor:r.valor, observaciones:'Cuota especial'};
+  window.fbFetch(fbUrl('iglesia/ministerioMujerAMujer/movimientos/'+movId), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(movimiento)}, function(e){
+    if(e){ alert('Error al registrar el ingreso.'); return; }
+    movimientosMujer.push(movimiento);
+    r.pagado = true;
+    r.fechaPago = new Date().toISOString().slice(0,10);
+    r.movimientoId = movId;
+    window.fbFetch(fbUrl('iglesia/ministerioMujerAMujer/cuotaRegistros/'+r.id), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(r)}, function(e2){
+      if(e2){ alert('Se registro el ingreso pero hubo un error al actualizar la cuota.'); }
+      registrarAuditoria('mujerAmujer', 'crear', 'Cuota especial pagada: '+movimiento.descripcion);
+      renderTablaCuotasMes();
+      renderMujerAMujer();
+    });
+  });
+}
+function desmarcarCuotaPagada(id){
+  var r = cuotaRegistros.find(function(x){return x.id===id;});
+  if(!r || !r.movimientoId) return;
+  if(!confirm('Esto elimina el ingreso registrado y marca la cuota como pendiente de nuevo. ¿Continuar?')) return;
+  window.fbFetch(fbUrl('iglesia/ministerioMujerAMujer/movimientos/'+r.movimientoId), {method:'DELETE'}, function(e){
+    if(e){ alert('Error al eliminar el ingreso.'); return; }
+    movimientosMujer = movimientosMujer.filter(function(m){return m.id!==r.movimientoId;});
+    registrarAuditoria('mujerAmujer', 'eliminar', 'Pago de cuota especial deshecho: '+r.nombre+' — '+MESES_CUMPLE[parseInt(r.mes,10)-1]+' '+r.anio);
+    r.pagado = false; r.fechaPago=''; r.movimientoId='';
+    window.fbFetch(fbUrl('iglesia/ministerioMujerAMujer/cuotaRegistros/'+r.id), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(r)}, function(e2){
+      renderTablaCuotasMes();
+      renderMujerAMujer();
+    });
+  });
+}
+function construirHtmlInformeCuotas(){
+  var totalRecaudado = cuotaRegistros.filter(function(r){return r.pagado;}).reduce(function(s,r){return s+(r.valor||0);},0);
+  var totalPorRecaudar = cuotaRegistros.filter(function(r){return r.obligado && !r.pagado;}).reduce(function(s,r){return s+(r.valor||0);},0);
+  var nombreIglesia = (iglesiaConfig && iglesiaConfig.nombre) ? iglesiaConfig.nombre : '';
+  function filas(lista, colorEtiqueta){
+    if(lista.length===0) return '<tr><td colspan="4" style="padding:8px;color:#888;text-align:center;">Sin registros</td></tr>';
+    return lista.map(function(r){
+      return '<tr><td style="padding:6px 8px;border-bottom:1px solid #eee;">'+r.nombre+'</td>'+
+        '<td style="padding:6px 8px;border-bottom:1px solid #eee;">'+MESES_CUMPLE[parseInt(r.mes,10)-1]+' '+r.anio+'</td>'+
+        '<td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:right;color:'+colorEtiqueta+';font-weight:600;">$'+(r.valor||0).toFixed(2)+'</td>'+
+        '<td style="padding:6px 8px;border-bottom:1px solid #eee;">'+(r.pagado?('Pagado el '+r.fechaPago):'Pendiente')+'</td></tr>';
+    }).join('');
+  }
+  var pagadas = cuotaRegistros.filter(function(r){return r.pagado;}).sort(function(a,b){return (String(b.anio)+b.mes).localeCompare(String(a.anio)+a.mes);});
+  var pendientes = cuotaRegistros.filter(function(r){return r.obligado && !r.pagado;}).sort(function(a,b){return (String(a.anio)+a.mes).localeCompare(String(b.anio)+b.mes);});
+  return '<div style="font-family:Georgia,serif;max-width:800px;margin:0 auto;padding:32px;color:#222;">'+
+    '<div style="text-align:center;border-bottom:2px solid #7a3b3f;padding-bottom:16px;margin-bottom:20px;">'+
+      (nombreIglesia?'<div style="font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#b08a3e;">'+nombreIglesia+'</div>':'')+
+      '<h1 style="font-size:24px;margin:8px 0 4px;">Informe Ejecutivo — Cuotas Especiales</h1>'+
+      '<div style="font-size:12px;color:#888;">Ministerio Mujer a Mujer &middot; Generado el '+new Date().toISOString().slice(0,10)+'</div>'+
+    '</div>'+
+    '<div style="display:flex;gap:14px;margin-bottom:26px;">'+
+      '<div style="flex:1;border:1px solid #ddd;border-radius:8px;padding:14px;text-align:center;">'+
+        '<div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px;">Total recaudado</div>'+
+        '<div style="font-size:22px;font-weight:700;color:#5a6b4f;margin-top:4px;">$'+totalRecaudado.toFixed(2)+'</div></div>'+
+      '<div style="flex:1;border:1px solid #ddd;border-radius:8px;padding:14px;text-align:center;">'+
+        '<div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px;">Total por recaudar</div>'+
+        '<div style="font-size:22px;font-weight:700;color:#7a3b3f;margin-top:4px;">$'+totalPorRecaudar.toFixed(2)+'</div></div>'+
+    '</div>'+
+    '<h2 style="font-size:15px;color:#5a6b4f;border-bottom:1px solid #ccc;padding-bottom:4px;">Cuotas recibidas ('+pagadas.length+')</h2>'+
+    '<table style="width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:22px;"><thead><tr>'+
+      '<th style="text-align:left;padding:6px 8px;border-bottom:2px solid #5a6b4f;">Miembro</th><th style="text-align:left;padding:6px 8px;border-bottom:2px solid #5a6b4f;">Periodo</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #5a6b4f;">Valor</th><th style="text-align:left;padding:6px 8px;border-bottom:2px solid #5a6b4f;">Estado</th>'+
+    '</tr></thead><tbody>'+filas(pagadas,'#5a6b4f')+'</tbody></table>'+
+    '<h2 style="font-size:15px;color:#7a3b3f;border-bottom:1px solid #ccc;padding-bottom:4px;">Cuotas pendientes ('+pendientes.length+')</h2>'+
+    '<table style="width:100%;border-collapse:collapse;font-size:12.5px;"><thead><tr>'+
+      '<th style="text-align:left;padding:6px 8px;border-bottom:2px solid #7a3b3f;">Miembro</th><th style="text-align:left;padding:6px 8px;border-bottom:2px solid #7a3b3f;">Periodo</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid #7a3b3f;">Valor</th><th style="text-align:left;padding:6px 8px;border-bottom:2px solid #7a3b3f;">Estado</th>'+
+    '</tr></thead><tbody>'+filas(pendientes,'#7a3b3f')+'</tbody></table>'+
+  '</div>';
+}
+function imprimirInformeCuotas(){
+  if(cuotaRegistros.length===0){ alert('No hay cuotas generadas todavia.'); return; }
+  var w = window.open('', '_blank');
+  w.document.write('<html><head><title>Informe de Cuotas Especiales</title></head><body>'+construirHtmlInformeCuotas()+'</body></html>');
+  w.document.close(); w.focus();
+  setTimeout(function(){ w.print(); }, 300);
+}
+function exportInformeCuotas(formato){
+  if(cuotaRegistros.length===0){ alert('No hay cuotas generadas todavia.'); return; }
+  if(formato==='word'){
+    var blob = new Blob(['\ufeff<html><head><meta charset="utf-8"></head><body>'+construirHtmlInformeCuotas()+'</body></html>'], {type:'application/msword'});
+    var link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'informe_cuotas_mujer_a_mujer.doc'; link.click();
+    return;
+  }
+  if(formato==='pdf'){
+    var totalRecaudado = cuotaRegistros.filter(function(r){return r.pagado;}).reduce(function(s,r){return s+(r.valor||0);},0);
+    var totalPorRecaudar = cuotaRegistros.filter(function(r){return r.obligado && !r.pagado;}).reduce(function(s,r){return s+(r.valor||0);},0);
+    var nombreIglesia = (iglesiaConfig && iglesiaConfig.nombre) ? iglesiaConfig.nombre : '';
+    var pagadas = cuotaRegistros.filter(function(r){return r.pagado;}).sort(function(a,b){return (String(b.anio)+b.mes).localeCompare(String(a.anio)+a.mes);});
+    var pendientes = cuotaRegistros.filter(function(r){return r.obligado && !r.pagado;}).sort(function(a,b){return (String(a.anio)+a.mes).localeCompare(String(b.anio)+b.mes);});
+    var doc = new window.jspdf.jsPDF();
+    var y = 16;
+    if(nombreIglesia){ doc.setFontSize(9); doc.setTextColor(176,138,62); doc.text(nombreIglesia.toUpperCase(), 105, y, {align:'center'}); y+=6; }
+    doc.setFontSize(17); doc.setTextColor(122,59,63); doc.setFont(undefined,'bold');
+    doc.text('Informe Ejecutivo — Cuotas Especiales', 105, y, {align:'center'}); y+=6;
+    doc.text('Ministerio Mujer a Mujer', 105, y, {align:'center'}); doc.setFont(undefined,'normal'); y+=8;
+    doc.setTextColor(0);
+    doc.setFontSize(10); doc.setFont(undefined,'bold');
+    doc.text('Total recaudado: $'+totalRecaudado.toFixed(2), 14, y);
+    doc.text('Total por recaudar: $'+totalPorRecaudar.toFixed(2), 110, y);
+    doc.setFont(undefined,'normal'); y+=10;
+    doc.setDrawColor(122,59,63); doc.line(14,y,196,y); y+=8;
+    doc.setFontSize(12); doc.setFont(undefined,'bold'); doc.text('Cuotas recibidas ('+pagadas.length+')', 14, y); doc.setFont(undefined,'normal'); y+=6;
+    doc.setFontSize(9);
+    pagadas.forEach(function(r){
+      if(y>280){ doc.addPage(); y=18; }
+      doc.text(r.nombre+' - '+MESES_CUMPLE[parseInt(r.mes,10)-1]+' '+r.anio+' (pagado '+r.fechaPago+')', 14, y);
+      doc.text('$'+(r.valor||0).toFixed(2), 190, y, {align:'right'});
+      y+=5;
+    });
+    y+=6;
+    if(y>270){ doc.addPage(); y=18; }
+    doc.setFontSize(12); doc.setFont(undefined,'bold'); doc.text('Cuotas pendientes ('+pendientes.length+')', 14, y); doc.setFont(undefined,'normal'); y+=6;
+    doc.setFontSize(9);
+    pendientes.forEach(function(r){
+      if(y>280){ doc.addPage(); y=18; }
+      doc.text(r.nombre+' - '+MESES_CUMPLE[parseInt(r.mes,10)-1]+' '+r.anio, 14, y);
+      doc.text('$'+(r.valor||0).toFixed(2), 190, y, {align:'right'});
+      y+=5;
+    });
+    doc.save('informe_cuotas_mujer_a_mujer.pdf');
+  }
 }
 </script>
 
