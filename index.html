@@ -876,7 +876,23 @@ tr:hover td{background:rgba(90,107,79,.05);}
             <div><label style="font-size:11px;">Año</label><br><input type="number" id="cuotaAnioSelect" style="max-width:100px;" onchange="renderTablaCuotasMes()"></div>
             <button class="btn small" onclick="generarObligacionesMes()">Generar obligaciones de este mes</button>
           </div>
+          <div style="border-top:1px dashed var(--line);margin:14px 0;padding-top:12px;">
+            <div style="font-size:12px;font-weight:600;margin-bottom:6px;">O genera varios meses de una vez (por periodo)</div>
+            <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">
+              <div><label style="font-size:11px;">Desde</label><br><input type="month" id="cuotaPeriodoDesde"></div>
+              <div><label style="font-size:11px;">Hasta</label><br><input type="month" id="cuotaPeriodoHasta"></div>
+              <button class="btn small" onclick="generarObligacionesPeriodo()">Generar obligaciones del periodo</button>
+            </div>
+            <div style="font-size:10px;color:var(--ink-dim);margin-top:4px;">Genera un mes por cada uno del rango, respetando en cada mes quien esta activo/obligado segun la lista de miembros de arriba (activo desde / inactivo desde).</div>
+          </div>
           <div id="tablaCuotasMes"></div>
+        </div>
+
+        <div class="proy-panel-card">
+          <div class="proy-panel-titulo">Historial de cuotas por miembro</div>
+          <div class="proy-panel-ayuda">Todas las cuotas generadas hasta ahora, de cualquier mes y año, con quien pago y quien no.</div>
+          <input type="text" id="cuotaHistorialBuscar" placeholder="Buscar por nombre..." oninput="renderHistorialCuotas()" style="margin-bottom:10px;">
+          <div id="tablaHistorialCuotas"></div>
         </div>
 
         <div class="proy-panel-card">
@@ -8979,6 +8995,25 @@ function renderCuotasEspeciales(){
   }
   renderTablaCuotaMiembros();
   renderTablaCuotasMes();
+  renderHistorialCuotas();
+}
+function renderHistorialCuotas(){
+  var box = document.getElementById('tablaHistorialCuotas');
+  if(!box) return;
+  var q = (document.getElementById('cuotaHistorialBuscar').value||'').trim().toLowerCase();
+  var lista = cuotaRegistros.filter(function(r){ return !q || r.nombre.toLowerCase().indexOf(q)>=0; });
+  if(lista.length===0){ box.innerHTML = '<div class="empty">Aun no hay cuotas generadas.</div>'; return; }
+  lista = lista.slice().sort(function(a,b){
+    var pa = String(a.anio)+a.mes, pb = String(b.anio)+b.mes;
+    if(pb!==pa) return pb.localeCompare(pa);
+    return a.nombre.localeCompare(b.nombre);
+  });
+  box.innerHTML = '<table><thead><tr><th>Nombre</th><th>Mes</th><th>Año</th><th>Estado</th></tr></thead><tbody>'+
+    lista.map(function(r){
+      var estado = !r.obligado ? '<span class="tag-chip">No obligado</span>' :
+        (r.pagado ? '<span class="tag-chip" style="background:var(--sage);color:#fff;">Pagado</span>' : '<span class="tag-chip" style="background:var(--wine);color:#fff;">No pagado</span>');
+      return '<tr><td>'+r.nombre+'</td><td>'+MESES_CUMPLE[parseInt(r.mes,10)-1]+'</td><td>'+r.anio+'</td><td>'+estado+'</td></tr>';
+    }).join('')+'</tbody></table>';
 }
 function actualizarValorCuota(){
   var nuevo = parseFloat(document.getElementById('cuotaNuevoValor').value);
@@ -9040,31 +9075,74 @@ function reactivarCuotaMiembro(fid){
     renderTablaCuotaMiembros();
   });
 }
+function generarObligacionesUnPeriodo(periodo, cb){
+  var partes = periodo.split('-');
+  var anio = partes[0], mes = partes[1];
+  var candidatos = cuotaMiembros.filter(function(m){
+    return m.activoDesde<=periodo && (!m.activoHasta || m.activoHasta>periodo);
+  });
+  if(candidatos.length===0){ cb(0); return; }
+  var pendientes = candidatos.length;
+  var creados = 0;
+  candidatos.forEach(function(m){
+    var id = m.feligresId+'_'+anio+'_'+mes;
+    if(cuotaRegistros.some(function(r){return r.id===id;})){ pendientes--; if(pendientes===0) cb(creados); return; }
+    var reg = {id:id, feligresId:m.feligresId, nombre:m.nombre, anio:anio, mes:mes, valor:m.valorCuota||cuotaValorActual, obligado:true, pagado:false, fechaPago:'', movimientoId:''};
+    window.fbFetch(fbUrl('iglesia/ministerioMujerAMujer/cuotaRegistros/'+id), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(reg)}, function(e){
+      if(!e){ cuotaRegistros.push(reg); creados++; }
+      pendientes--;
+      if(pendientes===0) cb(creados);
+    });
+  });
+}
 function generarObligacionesMes(){
   var mes = document.getElementById('cuotaMesSelect').value;
   var anio = String(document.getElementById('cuotaAnioSelect').value);
   if(!mes || !anio){ alert('Elige mes y año.'); return; }
   var periodo = anio+'-'+mes;
-  var candidatos = cuotaMiembros.filter(function(m){
-    return m.activoDesde<=periodo && (!m.activoHasta || m.activoHasta>periodo);
-  });
-  if(candidatos.length===0){ alert('No hay miembros activos para ese periodo.'); return; }
-  var pendientes = candidatos.length;
-  var creados = 0;
-  candidatos.forEach(function(m){
-    var id = m.feligresId+'_'+anio+'_'+mes;
-    if(cuotaRegistros.some(function(r){return r.id===id;})){ pendientes--; if(pendientes===0) terminar(); return; }
-    var reg = {id:id, feligresId:m.feligresId, nombre:m.nombre, anio:anio, mes:mes, valor:m.valorCuota||cuotaValorActual, obligado:true, pagado:false, fechaPago:'', movimientoId:''};
-    window.fbFetch(fbUrl('iglesia/ministerioMujerAMujer/cuotaRegistros/'+id), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(reg)}, function(e){
-      if(!e){ cuotaRegistros.push(reg); creados++; }
-      pendientes--;
-      if(pendientes===0) terminar();
-    });
-  });
-  function terminar(){
+  generarObligacionesUnPeriodo(periodo, function(creados){
+    if(creados===0 && !cuotaMiembros.some(function(m){return m.activoDesde<=periodo && (!m.activoHasta || m.activoHasta>periodo);})){
+      alert('No hay miembros activos para ese periodo.');
+      return;
+    }
     registrarAuditoria('mujerAmujer', 'crear', 'Obligaciones de cuota generadas para '+MESES_CUMPLE[parseInt(mes,10)-1]+' '+anio+' ('+creados+' nueva(s))');
-    renderTablaCuotasMes();
+    renderTablaCuotasMes(); renderHistorialCuotas();
+  });
+}
+function listaPeriodosEntre(desde, hasta){
+  var periodos = [];
+  var partesD = desde.split('-'), partesH = hasta.split('-');
+  var d = new Date(parseInt(partesD[0],10), parseInt(partesD[1],10)-1, 1);
+  var h = new Date(parseInt(partesH[0],10), parseInt(partesH[1],10)-1, 1);
+  while(d<=h){
+    periodos.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'));
+    d.setMonth(d.getMonth()+1);
   }
+  return periodos;
+}
+function generarObligacionesPeriodo(){
+  var desde = document.getElementById('cuotaPeriodoDesde').value;
+  var hasta = document.getElementById('cuotaPeriodoHasta').value;
+  if(!desde || !hasta){ alert('Elige el mes de inicio y el mes de fin del periodo.'); return; }
+  if(hasta<desde){ alert('El mes "hasta" debe ser igual o posterior al mes "desde".'); return; }
+  var periodos = listaPeriodosEntre(desde, hasta);
+  if(periodos.length>60){ alert('El periodo es demasiado largo (mas de 5 años). Elige un rango mas corto.'); return; }
+  var totalCreados = 0;
+  var i = 0;
+  function siguiente(){
+    if(i>=periodos.length){
+      registrarAuditoria('mujerAmujer', 'crear', 'Obligaciones de cuota generadas para el periodo '+desde+' a '+hasta+' ('+totalCreados+' nueva(s))');
+      renderTablaCuotasMes(); renderHistorialCuotas();
+      alert('Listo: se generaron '+totalCreados+' obligacion(es) nueva(s) en el periodo '+desde+' a '+hasta+'.');
+      return;
+    }
+    generarObligacionesUnPeriodo(periodos[i], function(creados){
+      totalCreados += creados;
+      i++;
+      siguiente();
+    });
+  }
+  siguiente();
 }
 function renderTablaCuotasMes(){
   var mesEl = document.getElementById('cuotaMesSelect');
@@ -9092,7 +9170,7 @@ function cambiarObligadoCuota(id, valor){
   window.fbFetch(fbUrl('iglesia/ministerioMujerAMujer/cuotaRegistros/'+id), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(r)}, function(e){
     if(e){ alert('Error al guardar.'); return; }
     registrarAuditoria('mujerAmujer', 'editar', 'Cuota de '+r.nombre+' ('+MESES_CUMPLE[parseInt(r.mes,10)-1]+' '+r.anio+') marcada como '+(valor?'obligada':'no obligada'));
-    renderTablaCuotasMes();
+    renderTablaCuotasMes(); renderHistorialCuotas();
   });
 }
 function marcarCuotaPagada(id){
@@ -9109,7 +9187,7 @@ function marcarCuotaPagada(id){
     window.fbFetch(fbUrl('iglesia/ministerioMujerAMujer/cuotaRegistros/'+r.id), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(r)}, function(e2){
       if(e2){ alert('Se registro el ingreso pero hubo un error al actualizar la cuota.'); }
       registrarAuditoria('mujerAmujer', 'crear', 'Cuota especial pagada: '+movimiento.descripcion);
-      renderTablaCuotasMes();
+      renderTablaCuotasMes(); renderHistorialCuotas();
       renderMujerAMujer();
     });
   });
@@ -9124,7 +9202,7 @@ function desmarcarCuotaPagada(id){
     registrarAuditoria('mujerAmujer', 'eliminar', 'Pago de cuota especial deshecho: '+r.nombre+' — '+MESES_CUMPLE[parseInt(r.mes,10)-1]+' '+r.anio);
     r.pagado = false; r.fechaPago=''; r.movimientoId='';
     window.fbFetch(fbUrl('iglesia/ministerioMujerAMujer/cuotaRegistros/'+r.id), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(r)}, function(e2){
-      renderTablaCuotasMes();
+      renderTablaCuotasMes(); renderHistorialCuotas();
       renderMujerAMujer();
     });
   });
