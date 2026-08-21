@@ -9620,9 +9620,9 @@ function renderActasReunion(){
       '<div style="font-size:12px;"><b>Acuerdos:</b> '+(a.acuerdos||[]).length+' ('+pendientes+' sin cumplir)</div>'+
       '<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">'+
         '<button class="btn small ghost" onclick="editarActa(\''+a.id+'\')">Ver / Editar</button>'+
-        '<button class="btn small secondary" onclick="imprimirActa(\''+a.id+'\')">Imprimir</button>'+
-        '<button class="btn small secondary" onclick="descargarActaPDF(\''+a.id+'\')">PDF</button>'+
-        '<button class="btn small secondary" onclick="descargarActaWord(\''+a.id+'\')">Word</button>'+
+        '<button class="btn small secondary" onclick="imprimirActa(\''+a.id+'\')">Imprimir informe ejecutivo</button>'+
+        '<button class="btn small secondary" onclick="descargarActaPDF(\''+a.id+'\')">Descargar PDF (informe ejecutivo)</button>'+
+        '<button class="btn small secondary" onclick="descargarActaWord(\''+a.id+'\')">Descargar Word (informe ejecutivo)</button>'+
         (esAdmin()?' <button class="btn small danger" onclick="eliminarActa(\''+a.id+'\')">Eliminar</button>':'')+
       '</div>'+
     '</div></div>';
