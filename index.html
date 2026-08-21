@@ -300,6 +300,7 @@ tr:hover td{background:rgba(90,107,79,.05);}
     <button class="navbtn" data-view="predicas">Cronograma de Predicas</button>
     <button class="navbtn" data-view="anuncios">Anuncios</button>
     <button class="navbtn" data-view="auditoriaFinanciera">Auditoria Financiera</button>
+    <button class="navbtn" data-view="actasReunion">Actas de Reunion</button>
     <button class="navbtn" data-view="proyeccion">Proyeccion</button>
     <button class="navbtn" data-view="envivo">En Vivo</button>
     <button class="navbtn" data-view="auditoria">Auditoria</button>
@@ -1087,6 +1088,42 @@ tr:hover td{background:rgba(90,107,79,.05);}
       <div id="tablaAuditoriasFin"></div>
     </section>
 
+    <section class="view" id="view-actasReunion">
+      <div class="view-head">
+        <div><h1>Actas de Reunion</h1><div class="sub">Actas de la junta directiva y organos de gobierno de la iglesia</div></div>
+        <button class="btn" id="btnNuevaActa">+ Nueva acta</button>
+      </div>
+      <div class="toolbar">
+        <button class="btn small" id="tabActasLista" onclick="mostrarSubvistaActas('lista')">Actas</button>
+        <button class="btn small ghost" id="tabActasSeguimiento" onclick="mostrarSubvistaActas('seguimiento')">Seguimiento de Acuerdos</button>
+      </div>
+
+      <div id="actasSubLista">
+        <div class="toolbar">
+          <select id="filtroTipoActa"><option value="">Todos los tipos</option></select>
+          <input type="date" id="filtroDesdeActa" title="Desde">
+          <input type="date" id="filtroHastaActa" title="Hasta">
+        </div>
+        <div id="tablaActas"></div>
+      </div>
+
+      <div id="actasSubSeguimiento" style="display:none;">
+        <div class="proy-panel-ayuda" style="margin-bottom:12px;">Todos los acuerdos de todas las actas, en un solo lugar, para dar seguimiento a su cumplimiento.</div>
+        <div class="toolbar">
+          <select id="filtroResponsableAcuerdo"><option value="">Todos los responsables</option></select>
+          <select id="filtroEstadoAcuerdo">
+            <option value="">Todos los estados</option>
+            <option value="pendiente">Pendiente</option>
+            <option value="en_progreso">En progreso</option>
+            <option value="cumplido">Cumplido</option>
+            <option value="vencido">Vencido</option>
+          </select>
+        </div>
+        <div id="tablaSeguimientoAcuerdos"></div>
+      </div>
+    </section>
+
+
     <section class="view" id="view-proyeccion">
       <div class="view-head">
         <div><h1>Proyeccion</h1><div class="sub">Panel de control para lo que se proyecta en el servicio</div></div>
@@ -1375,6 +1412,72 @@ tr:hover td{background:rgba(90,107,79,.05);}
   </div>
 </div>
 
+<div class="modal-backdrop" id="modalActaReunion">
+  <div class="modal" style="max-width:800px;">
+    <h2 id="modalActaTitulo">Nueva acta de reunion</h2>
+    <div class="form-grid" style="margin-bottom:10px;">
+      <div><label>Tipo de reunion *</label>
+        <select id="actaTipo">
+          <option value="Junta Directiva">Junta Directiva</option>
+          <option value="Consejo de Ancianos">Consejo de Ancianos</option>
+          <option value="Asamblea General">Asamblea General</option>
+          <option value="Comite de Finanzas">Comite de Finanzas</option>
+          <option value="Comite de Educacion Cristiana">Comite de Educacion Cristiana</option>
+          <option value="Reunion Ministerial">Reunion Ministerial</option>
+          <option value="Otro">Otro</option>
+        </select>
+      </div>
+      <div><label>Fecha *</label><input type="date" id="actaFecha"></div>
+      <div><label>Hora inicio</label><input type="time" id="actaHoraInicio"></div>
+      <div><label>Hora fin</label><input type="time" id="actaHoraFin"></div>
+      <div><label>Lugar</label><input id="actaLugar" placeholder="Ej. Templo principal, sala de reuniones..."></div>
+      <div><label>Quien preside</label><input id="actaPreside" placeholder="Nombre del pastor o presidente"></div>
+      <div><label>Secretario/a (redacta el acta)</label><input id="actaSecretario"></div>
+      <div><label>Numero de acta (opcional)</label><input id="actaNumero" placeholder="Ej. 012-2026"></div>
+    </div>
+
+    <div class="full" style="margin-bottom:10px;"><label>Asistentes</label>
+      <input type="text" placeholder="Buscar por nombre..." style="width:100%;margin-bottom:6px;" oninput="filtrarPickerNombre('pickerAsistentesActa', this.value)">
+      <div class="tag-picker" id="pickerAsistentesActa" style="max-height:160px;overflow-y:auto;"></div>
+    </div>
+
+    <div class="form-grid" style="margin-bottom:10px;">
+      <div class="full"><label>Versiculo de apertura</label>
+        <div style="display:flex;gap:6px;">
+          <textarea id="actaVersoTexto" rows="2" style="flex:1;"></textarea>
+          <button type="button" class="btn small ghost" onclick="sugerirVersoActa()" style="align-self:flex-start;">Sugerir otro</button>
+        </div>
+        <input id="actaVersoRef" placeholder="Referencia" style="margin-top:6px;">
+      </div>
+      <div class="full"><label>Orden del dia</label><textarea id="actaOrdenDia" rows="3" placeholder="1. ...&#10;2. ...&#10;3. ..."></textarea></div>
+      <div class="full"><label>Desarrollo de la reunion</label><textarea id="actaDesarrollo" rows="5" placeholder="Resumen de lo tratado, discutido y decidido en cada punto..."></textarea></div>
+    </div>
+
+    <div class="kpi-section-title" style="margin-top:0;">Acuerdos y compromisos</div>
+    <div id="actaAcuerdosList" style="margin-bottom:8px;"></div>
+    <div class="form-grid" style="margin-bottom:14px;">
+      <div class="full"><label>Descripcion del acuerdo</label><input id="actaAcuerdoDescripcion" placeholder="Ej. Contactar proveedor para reparacion del techo"></div>
+      <div><label>Responsable</label>
+        <input type="text" placeholder="Buscar..." oninput="filtrarSelectMiembro('actaAcuerdoResponsableSelect', this.value, true)">
+        <select id="actaAcuerdoResponsableSelect" style="margin-top:4px;"></select>
+      </div>
+      <div><label>Fecha limite</label><input type="date" id="actaAcuerdoFechaLimite"></div>
+      <button type="button" class="btn small" onclick="agregarAcuerdoActa()" style="align-self:flex-end;">+ Agregar acuerdo</button>
+    </div>
+
+    <div class="form-grid">
+      <div><label>Proxima reunion (opcional)</label><input type="date" id="actaProximaReunion"></div>
+      <div><label>Estado del acta</label>
+        <select id="actaEstado"><option value="borrador">Borrador</option><option value="aprobada">Aprobada</option></select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="btnCancelarActa">Cancelar</button>
+      <button class="btn" id="btnGuardarActa">Guardar acta</button>
+    </div>
+  </div>
+</div>
+
     <section class="view" id="view-auditoria">
       <div class="view-head">
         <div><h1>Auditoria</h1><div class="sub">Quien hizo cada movimiento, en toda la app</div></div>
@@ -1433,10 +1536,12 @@ tr:hover td{background:rgba(90,107,79,.05);}
         <select id="fEstado" required><option value="activo">Activo</option><option value="inactivo">Inactivo</option></select>
       </div>
       <div class="full"><label>Familia *</label><input id="fFamilia" required placeholder="Ej. Familia Perez"></div>
+      <div><label>Profesion</label><input id="fProfesion" placeholder="Ej. Ingeniero, Comerciante, Ama de casa..."></div>
       <div><label>¿Bautizado?</label>
         <select id="fBautizado"><option value="no">No</option><option value="si">Si</option></select>
       </div>
-      <div id="fFechaBautismoWrap" style="display:none;"><label>Fecha de bautismo</label><input id="fFechaBautismo" type="date"></div>
+      <div id="fFechaBautismoWrap" style="display:none;"><label>Fecha de bautismo (opcional)</label><input id="fFechaBautismo" type="date"></div>
+      <div id="fIglesiaBautismoWrap" style="display:none;"><label>Iglesia donde se bautizo (opcional)</label><input id="fIglesiaBautismo" placeholder="Ej. Iglesia Alianza Cristiana y Misionera Peniel"></div>
       <div class="full">
         <label>Ministerios / celulas (puede pertenecer a mas de uno) *</label>
         <div class="tag-picker" id="pickerMinisterios"></div>
@@ -1998,7 +2103,8 @@ var AREAS_PERMISOS = [
   {key:'predicas', label:'Cronograma de Predicas'},
   {key:'anuncios', label:'Anuncios'},
   {key:'auditoriaFinanciera', label:'Auditoria Financiera'},
-  {key:'proyeccion', label:'Proyeccion'}
+  {key:'proyeccion', label:'Proyeccion'},
+  {key:'actasReunion', label:'Actas de Reunion'}
 ];
 
 // Los roles y permisos ahora viven en la base de datos, en iglesia/usuarios/{uid}.
@@ -2301,6 +2407,7 @@ var VERSICULOS = {
   predicas: {texto:'"Predica la palabra; que instes a tiempo y fuera de tiempo"', ref:'2 Timoteo 4:2, RVR1960'},
   anuncios: {texto:'"Encontrandonos juntos, exhortandonos"', ref:'Hebreos 10:25, RVR1960'},
   auditoriaFinanciera: {texto:'"Procurando hacer las cosas honradamente, no solo delante del Senor, sino tambien delante de los hombres"', ref:'2 Corintios 8:21, RVR1960'},
+  actasReunion: {texto:'"Hagase todo decentemente y con orden"', ref:'1 Corintios 14:40, RVR1960'},
   proyeccion: {texto:'"Escribe la vision, y declarala en tablas"', ref:'Habacuc 2:2, RVR1960'},
   desarrollo: {texto:'"Segun cada uno recibio el don, ministradlo a los otros"', ref:'1 Pedro 4:10, RVR1960'}
 };
@@ -2319,6 +2426,9 @@ var movimientosMujer = [];
 var cuotaValorActual = 5;
 var cuotaMiembros = [];
 var cuotaRegistros = [];
+var actasReunion = [];
+var editingActaId = null;
+var _acuerdosActaState = [];
 var editingMovMujerId = null;
 var predicas = [];
 var anuncios = [];
@@ -2414,6 +2524,7 @@ document.querySelectorAll('.navbtn').forEach(function(btn){
     if(btn.dataset.view==='predicas') renderPredicas();
     if(btn.dataset.view==='anuncios') renderAnuncios();
     if(btn.dataset.view==='auditoriaFinanciera') renderAuditoriasFinancieras();
+    if(btn.dataset.view==='actasReunion') renderActasReunion();
     if(btn.dataset.view==='proyeccion') renderProyeccion();
     if(btn.dataset.view==='envivo') renderEnVivo();
   });
@@ -2445,7 +2556,7 @@ function updateVerse(view){
 function fbUrl(path){ return 'https://iglesiaalianzapeniel-24992-default-rtdb.firebaseio.com/'+path+'.json'; }
 
 function loadAll(cb){
-  var pending = 29, err=null;
+  var pending = 30, err=null;
   function done(){ if(--pending===0) cb(err); }
   window.fbFetch(fbUrl('iglesia/config/conceptos_oracion_extra'), {}, function(e,d){
     conceptosOracionExtra = Array.isArray(d) ? d : (d ? Object.keys(d).map(function(k){return d[k];}) : []);
@@ -2578,6 +2689,11 @@ function loadAll(cb){
     cuotaRegistros = d ? Object.keys(d).map(function(k){ var o=d[k]; o.id=o.id||k; return o; }) : [];
     done();
   });
+  window.fbFetch(fbUrl('iglesia/actasReunion'), {}, function(e,d){
+    if(e) err=e;
+    actasReunion = d ? Object.keys(d).map(function(k){ var o=d[k]; o.id=o.id||k; return o; }) : [];
+    done();
+  });
   window.fbFetch(fbUrl('iglesia/predicas'), {}, function(e,d){
     if(e) err=e;
     predicas = d ? Object.keys(d).map(function(k){ var o=d[k]; o.id=o.id||k; return o; }) : [];
@@ -2705,12 +2821,14 @@ function renderOtrosChips(field){
 document.getElementById('btnNuevoFeligres').onclick = function(){
   editingFeligresId = null;
   document.getElementById('modalFeligresTitulo').textContent = 'Nuevo miembro';
-  ['fNombres','fApellidos','fCedula','fNacionalidad','fNacimiento','fTelefono','fEmail','fDireccion','fMembresia','fFamilia','fNotas'].forEach(function(id){ document.getElementById(id).value=''; });
+  ['fNombres','fApellidos','fCedula','fNacionalidad','fNacimiento','fTelefono','fEmail','fDireccion','fMembresia','fFamilia','fProfesion','fNotas'].forEach(function(id){ document.getElementById(id).value=''; });
   document.getElementById('fEstado').value = 'activo';
   document.getElementById('fTipoDoc').value = 'cedula';
   document.getElementById('fBautizado').value = 'no';
   document.getElementById('fFechaBautismo').value = '';
+  document.getElementById('fIglesiaBautismo').value = '';
   document.getElementById('fFechaBautismoWrap').style.display = 'none';
+  document.getElementById('fIglesiaBautismoWrap').style.display = 'none';
   document.getElementById('fCedulaError').style.display = 'none';
   fillPicker(document.getElementById('pickerMinisterios'), MINISTERIOS, []);
   fillPicker(document.getElementById('pickerDones'), DONES, []);
@@ -2723,6 +2841,7 @@ document.getElementById('btnCancelarFeligres').onclick = function(){
 };
 document.getElementById('fBautizado').addEventListener('change', function(){
   document.getElementById('fFechaBautismoWrap').style.display = this.value==='si' ? '' : 'none';
+  document.getElementById('fIglesiaBautismoWrap').style.display = this.value==='si' ? '' : 'none';
 });
 document.getElementById('btnGuardarFeligres').onclick = function(){
   var id = editingFeligresId || ('f'+Date.now());
@@ -2749,8 +2868,10 @@ document.getElementById('btnGuardarFeligres').onclick = function(){
     fechaMembresia: document.getElementById('fMembresia').value,
     estado: document.getElementById('fEstado').value,
     familia: document.getElementById('fFamilia').value.trim(),
+    profesion: document.getElementById('fProfesion').value.trim(),
     bautizado: document.getElementById('fBautizado').value,
     fechaBautismo: document.getElementById('fBautizado').value==='si' ? document.getElementById('fFechaBautismo').value : '',
+    iglesiaBautismo: document.getElementById('fBautizado').value==='si' ? document.getElementById('fIglesiaBautismo').value.trim() : '',
     ministerios: pickedValues(document.getElementById('pickerMinisterios')),
     ministeriosOtros: getOtros('ministerios'),
     dones: pickedValues(document.getElementById('pickerDones')),
@@ -2824,9 +2945,12 @@ function editFeligres(id){
   document.getElementById('fMembresia').value = f.fechaMembresia||'';
   document.getElementById('fEstado').value = f.estado||'activo';
   document.getElementById('fFamilia').value = f.familia||'';
+  document.getElementById('fProfesion').value = f.profesion||'';
   document.getElementById('fBautizado').value = f.bautizado||'no';
   document.getElementById('fFechaBautismo').value = f.fechaBautismo||'';
+  document.getElementById('fIglesiaBautismo').value = f.iglesiaBautismo||'';
   document.getElementById('fFechaBautismoWrap').style.display = (f.bautizado==='si') ? '' : 'none';
+  document.getElementById('fIglesiaBautismoWrap').style.display = (f.bautizado==='si') ? '' : 'none';
   document.getElementById('fNotas').value = f.notas||'';
   fillPicker(document.getElementById('pickerMinisterios'), MINISTERIOS, f.ministerios||[]);
   fillPicker(document.getElementById('pickerDones'), DONES, f.dones||[]);
@@ -4041,7 +4165,7 @@ function exportLiderazgoActual(formato){
 }
 
 /* ============ AUDITORIA ============ */
-var AREA_LABEL = {feligreses:'Miembros', diezmos:'Diezmos y ofrendas', asistencia:'Asistencia', planificacion:'Planificacion', liderazgo:'Pastor y lideres', ministerios:'Ministerios', config:'Configuracion', predicas:'Cronograma de Predicas', anuncios:'Anuncios', auditoriaFinanciera:'Auditoria Financiera'};
+var AREA_LABEL = {feligreses:'Miembros', diezmos:'Diezmos y ofrendas', asistencia:'Asistencia', planificacion:'Planificacion', liderazgo:'Pastor y lideres', ministerios:'Ministerios', config:'Configuracion', predicas:'Cronograma de Predicas', anuncios:'Anuncios', auditoriaFinanciera:'Auditoria Financiera', actasReunion:'Actas de Reunion'};
 var ACCION_LABEL = {crear:'Creo', editar:'Edito', eliminar:'Elimino'};
 var _auditoriaFiltrada = [];
 function renderAuditoria(){
@@ -9326,6 +9450,341 @@ function exportInformeCuotas(formato){
     });
     doc.save('informe_cuotas_mujer_a_mujer.pdf');
   }
+}
+
+/* ============ Actas de Reunion ============ */
+var VERSICULOS_ACTA = [
+  {texto:'"Hagase todo decentemente y con orden."', ref:'1 Corintios 14:40, RVR1960'},
+  {texto:'"Porque Dios no es Dios de confusion, sino de paz."', ref:'1 Corintios 14:33, RVR1960'},
+  {texto:'"Donde no hay direccion sabia, el pueblo cae; mas en la multitud de consejeros hay seguridad."', ref:'Proverbios 11:14, RVR1960'},
+  {texto:'"Los pensamientos con el consejo se ordenan; y con sabios consejos se hace la guerra."', ref:'Proverbios 20:18, RVR1960'},
+  {texto:'"Obedeced a vuestros pastores, y sujetaos a ellos; porque ellos velan por vuestras almas."', ref:'Hebreos 13:17, RVR1960'},
+  {texto:'"Entonces los apostoles y los ancianos se reunieron para conocer de este asunto."', ref:'Hechos 15:6, RVR1960'},
+  {texto:'"Todas vuestras cosas sean hechas con amor."', ref:'1 Corintios 16:14, RVR1960'},
+  {texto:'"Y todo lo que hagais, hacedlo de corazon, como para el Senor y no para los hombres."', ref:'Colosenses 3:23, RVR1960'},
+  {texto:'"Antes bien, con humildad, estimando cada uno a los demas como superiores a el mismo."', ref:'Filipenses 2:3, RVR1960'},
+  {texto:'"Si es posible, en cuanto dependa de vosotros, estad en paz con todos los hombres."', ref:'Romanos 12:18, RVR1960'}
+];
+var ESTADO_ACUERDO_LABEL = {pendiente:'Pendiente', en_progreso:'En progreso', cumplido:'Cumplido', vencido:'Vencido'};
+function sugerirVersoActa(){
+  var v = VERSICULOS_ACTA[Math.floor(Math.random()*VERSICULOS_ACTA.length)];
+  document.getElementById('actaVersoTexto').value = v.texto;
+  document.getElementById('actaVersoRef').value = v.ref;
+}
+function renderAcuerdosActaList(){
+  var box = document.getElementById('actaAcuerdosList');
+  if(_acuerdosActaState.length===0){ box.innerHTML = '<span style="font-size:12px;color:var(--ink-dim);">Aun no hay acuerdos agregados.</span>'; return; }
+  box.innerHTML = _acuerdosActaState.map(function(a,idx){
+    return '<div class="hito-item"><div class="hito-top"><label>'+a.descripcion+'</label><span class="hito-del" onclick="quitarAcuerdoActa('+idx+')">×</span></div>'+
+      '<div class="hito-desc">Responsable: '+(a.responsableNombre||'sin asignar')+(a.fechaLimite?' — Fecha limite: '+a.fechaLimite:'')+' — Estado: '+ESTADO_ACUERDO_LABEL[a.estado]+'</div></div>';
+  }).join('');
+}
+function agregarAcuerdoActa(){
+  var desc = document.getElementById('actaAcuerdoDescripcion').value.trim();
+  if(!desc){ alert('Escribe la descripcion del acuerdo.'); return; }
+  var fid = document.getElementById('actaAcuerdoResponsableSelect').value;
+  var f = feligreses.find(function(x){return x.id===fid;});
+  _acuerdosActaState.push({
+    descripcion:desc, responsableId:fid||'', responsableNombre:f?(f.nombres+' '+f.apellidos):'',
+    fechaLimite:document.getElementById('actaAcuerdoFechaLimite').value, estado:'pendiente', observaciones:'', fechaCumplimiento:''
+  });
+  document.getElementById('actaAcuerdoDescripcion').value = '';
+  document.getElementById('actaAcuerdoFechaLimite').value = '';
+  renderAcuerdosActaList();
+}
+function quitarAcuerdoActa(idx){ _acuerdosActaState.splice(idx,1); renderAcuerdosActaList(); }
+document.getElementById('btnNuevaActa').onclick = function(){
+  editingActaId = null;
+  document.getElementById('modalActaTitulo').textContent = 'Nueva acta de reunion';
+  document.getElementById('actaTipo').value = 'Junta Directiva';
+  document.getElementById('actaFecha').value = new Date().toISOString().slice(0,10);
+  document.getElementById('actaHoraInicio').value = '';
+  document.getElementById('actaHoraFin').value = '';
+  document.getElementById('actaLugar').value = '';
+  document.getElementById('actaPreside').value = '';
+  document.getElementById('actaSecretario').value = '';
+  document.getElementById('actaNumero').value = '';
+  fillFeligresPicker(document.getElementById('pickerAsistentesActa'), []);
+  sugerirVersoActa();
+  document.getElementById('actaOrdenDia').value = '';
+  document.getElementById('actaDesarrollo').value = '';
+  filtrarSelectMiembro('actaAcuerdoResponsableSelect', '', true);
+  document.getElementById('actaAcuerdoDescripcion').value = '';
+  document.getElementById('actaAcuerdoFechaLimite').value = '';
+  _acuerdosActaState = [];
+  renderAcuerdosActaList();
+  document.getElementById('actaProximaReunion').value = '';
+  document.getElementById('actaEstado').value = 'borrador';
+  document.getElementById('modalActaReunion').classList.add('show');
+};
+document.getElementById('btnCancelarActa').onclick = function(){
+  document.getElementById('modalActaReunion').classList.remove('show');
+};
+document.getElementById('btnGuardarActa').onclick = function(){
+  var fecha = document.getElementById('actaFecha').value;
+  if(!fecha){ alert('La fecha de la reunion es obligatoria.'); return; }
+  if(_acuerdosActaState.length===0 && !confirm('No agregaste ningun acuerdo. ¿Guardar el acta de todas formas?')) return;
+  var id = editingActaId || ('acta'+Date.now());
+  var acta = {
+    id:id, tipo:document.getElementById('actaTipo').value, fecha:fecha,
+    horaInicio:document.getElementById('actaHoraInicio').value, horaFin:document.getElementById('actaHoraFin').value,
+    lugar:document.getElementById('actaLugar').value.trim(), preside:document.getElementById('actaPreside').value.trim(),
+    secretario:document.getElementById('actaSecretario').value.trim(), numero:document.getElementById('actaNumero').value.trim(),
+    asistentesIds:pickedValues(document.getElementById('pickerAsistentesActa')),
+    versoTexto:document.getElementById('actaVersoTexto').value.trim(), versoRef:document.getElementById('actaVersoRef').value.trim(),
+    ordenDia:document.getElementById('actaOrdenDia').value.trim(), desarrollo:document.getElementById('actaDesarrollo').value.trim(),
+    acuerdos:_acuerdosActaState.slice(),
+    proximaReunion:document.getElementById('actaProximaReunion').value, estado:document.getElementById('actaEstado').value
+  };
+  window.fbFetch(fbUrl('iglesia/actasReunion/'+id), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(acta)}, function(e){
+    if(e){ alert('Error al guardar.'); return; }
+    var idx = actasReunion.findIndex(function(a){return a.id===id;});
+    registrarAuditoria('actasReunion', idx>=0?'editar':'crear', acta.tipo+' — '+acta.fecha);
+    if(idx>=0) actasReunion[idx]=acta; else actasReunion.push(acta);
+    document.getElementById('modalActaReunion').classList.remove('show');
+    renderActasReunion();
+  });
+};
+function editarActa(id){
+  if(!esAdmin()){ alert('Solo el administrador puede editar registros existentes.'); return; }
+  var a = actasReunion.find(function(x){return x.id===id;});
+  if(!a) return;
+  editingActaId = id;
+  document.getElementById('modalActaTitulo').textContent = 'Editar acta de reunion';
+  document.getElementById('actaTipo').value = a.tipo;
+  document.getElementById('actaFecha').value = a.fecha;
+  document.getElementById('actaHoraInicio').value = a.horaInicio||'';
+  document.getElementById('actaHoraFin').value = a.horaFin||'';
+  document.getElementById('actaLugar').value = a.lugar||'';
+  document.getElementById('actaPreside').value = a.preside||'';
+  document.getElementById('actaSecretario').value = a.secretario||'';
+  document.getElementById('actaNumero').value = a.numero||'';
+  fillFeligresPicker(document.getElementById('pickerAsistentesActa'), a.asistentesIds||[]);
+  document.getElementById('actaVersoTexto').value = a.versoTexto||'';
+  document.getElementById('actaVersoRef').value = a.versoRef||'';
+  document.getElementById('actaOrdenDia').value = a.ordenDia||'';
+  document.getElementById('actaDesarrollo').value = a.desarrollo||'';
+  filtrarSelectMiembro('actaAcuerdoResponsableSelect', '', true);
+  _acuerdosActaState = (a.acuerdos||[]).slice();
+  renderAcuerdosActaList();
+  document.getElementById('actaProximaReunion').value = a.proximaReunion||'';
+  document.getElementById('actaEstado').value = a.estado||'borrador';
+  document.getElementById('modalActaReunion').classList.add('show');
+}
+function eliminarActa(id){
+  if(!esAdmin()){ alert('Solo el administrador puede eliminar registros.'); return; }
+  if(!confirm('Eliminar esta acta de reunion?')) return;
+  var a = actasReunion.find(function(x){return x.id===id;});
+  window.fbFetch(fbUrl('iglesia/actasReunion/'+id), {method:'DELETE'}, function(e){
+    if(e){ alert('Error al eliminar.'); return; }
+    registrarAuditoria('actasReunion', 'eliminar', a?(a.tipo+' — '+a.fecha):id);
+    actasReunion = actasReunion.filter(function(x){return x.id!==id;});
+    renderActasReunion();
+  });
+}
+function mostrarSubvistaActas(cual){
+  document.getElementById('actasSubLista').style.display = cual==='lista' ? '' : 'none';
+  document.getElementById('actasSubSeguimiento').style.display = cual==='seguimiento' ? '' : 'none';
+  document.getElementById('tabActasLista').className = 'btn small ' + (cual==='lista'?'':'ghost');
+  document.getElementById('tabActasSeguimiento').className = 'btn small ' + (cual==='seguimiento'?'':'ghost');
+  if(cual==='seguimiento') renderSeguimientoAcuerdos();
+}
+function fillFiltroTipoActa(){
+  var sel = document.getElementById('filtroTipoActa');
+  if(sel.options.length>1) return;
+  var tipos = ["Junta Directiva","Consejo de Ancianos","Asamblea General","Comite de Finanzas","Comite de Educacion Cristiana","Reunion Ministerial","Otro"];
+  sel.innerHTML = '<option value="">Todos los tipos</option>'+tipos.map(function(t){return '<option value="'+t+'">'+t+'</option>';}).join('');
+}
+var _actasFiltradas = [];
+function renderActasReunion(){
+  fillFiltroTipoActa();
+  var tipoF = document.getElementById('filtroTipoActa').value;
+  var desdeF = document.getElementById('filtroDesdeActa').value;
+  var hastaF = document.getElementById('filtroHastaActa').value;
+  var list = actasReunion.filter(function(a){
+    var matchT = !tipoF || a.tipo===tipoF;
+    var matchD = !desdeF || (a.fecha||'')>=desdeF;
+    var matchH = !hastaF || (a.fecha||'')<=hastaF;
+    return matchT && matchD && matchH;
+  }).sort(function(a,b){return (b.fecha||'').localeCompare(a.fecha||'');});
+  _actasFiltradas = list;
+  var box = document.getElementById('tablaActas');
+  if(list.length===0){ box.innerHTML = '<div class="empty">No hay actas registradas todavia. Crea la primera con "+ Nueva acta".</div>'; return; }
+  box.innerHTML = list.map(function(a){
+    var pendientes = (a.acuerdos||[]).filter(function(x){return x.estado!=='cumplido';}).length;
+    return '<div class="plan-grupo"><div class="plan-grupo-header" style="cursor:default;">'+
+      '<div><b>'+a.tipo+'</b>'+(a.numero?' <span style="color:var(--ink-dim);font-size:12px;">(Acta '+a.numero+')</span>':'')+' <span class="tag-chip">'+(a.estado==='aprobada'?'Aprobada':'Borrador')+'</span></div>'+
+      '<span style="font-size:11px;color:var(--ink-dim);">'+a.fecha+'</span>'+
+    '</div><div class="plan-grupo-body" style="padding:12px 16px;">'+
+      (a.lugar?'<div style="font-size:12px;"><b>Lugar:</b> '+a.lugar+'</div>':'')+
+      '<div style="font-size:12px;"><b>Acuerdos:</b> '+(a.acuerdos||[]).length+' ('+pendientes+' sin cumplir)</div>'+
+      '<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">'+
+        '<button class="btn small ghost" onclick="editarActa(\''+a.id+'\')">Ver / Editar</button>'+
+        '<button class="btn small secondary" onclick="imprimirActa(\''+a.id+'\')">Imprimir</button>'+
+        '<button class="btn small secondary" onclick="descargarActaPDF(\''+a.id+'\')">PDF</button>'+
+        '<button class="btn small secondary" onclick="descargarActaWord(\''+a.id+'\')">Word</button>'+
+        (esAdmin()?' <button class="btn small danger" onclick="eliminarActa(\''+a.id+'\')">Eliminar</button>':'')+
+      '</div>'+
+    '</div></div>';
+  }).join('');
+}
+['filtroTipoActa','filtroDesdeActa','filtroHastaActa'].forEach(function(id){
+  document.getElementById(id).addEventListener('change', renderActasReunion);
+});
+function renderSeguimientoAcuerdos(){
+  var todos = [];
+  actasReunion.forEach(function(a){
+    (a.acuerdos||[]).forEach(function(ac, idx){
+      todos.push({actaId:a.id, idx:idx, actaFecha:a.fecha, actaTipo:a.tipo, descripcion:ac.descripcion, responsableNombre:ac.responsableNombre, fechaLimite:ac.fechaLimite, estado:ac.estado});
+    });
+  });
+  var selResp = document.getElementById('filtroResponsableAcuerdo');
+  if(selResp.options.length<=1){
+    var nombres = Array.from(new Set(todos.map(function(t){return t.responsableNombre;}).filter(Boolean))).sort();
+    selResp.innerHTML = '<option value="">Todos los responsables</option>'+nombres.map(function(n){return '<option value="'+n+'">'+n+'</option>';}).join('');
+  }
+  var respF = selResp.value;
+  var estF = document.getElementById('filtroEstadoAcuerdo').value;
+  var hoy = new Date().toISOString().slice(0,10);
+  todos.forEach(function(t){ if(t.estado!=='cumplido' && t.fechaLimite && t.fechaLimite<hoy) t.estadoVisual='vencido'; else t.estadoVisual=t.estado; });
+  var filtrados = todos.filter(function(t){
+    return (!respF || t.responsableNombre===respF) && (!estF || t.estadoVisual===estF);
+  }).sort(function(a,b){return (a.fechaLimite||'9999').localeCompare(b.fechaLimite||'9999');});
+  var box = document.getElementById('tablaSeguimientoAcuerdos');
+  if(filtrados.length===0){ box.innerHTML = '<div class="empty">No hay acuerdos que coincidan.</div>'; return; }
+  box.innerHTML = '<table><thead><tr><th>Acuerdo</th><th>Responsable</th><th>Fecha limite</th><th>Reunion de origen</th><th>Estado</th><th></th></tr></thead><tbody>'+
+    filtrados.map(function(t){
+      var colorEstado = t.estadoVisual==='cumplido' ? 'var(--sage)' : (t.estadoVisual==='vencido' ? 'var(--wine)' : 'var(--gold)');
+      return '<tr><td>'+t.descripcion+'</td><td>'+(t.responsableNombre||'-')+'</td><td>'+(t.fechaLimite||'-')+'</td>'+
+        '<td style="font-size:11px;color:var(--ink-dim);">'+t.actaTipo+' — '+t.actaFecha+'</td>'+
+        '<td><span class="tag-chip" style="background:'+colorEstado+';color:#fff;">'+ESTADO_ACUERDO_LABEL[t.estadoVisual]+'</span></td>'+
+        '<td><select onchange="cambiarEstadoAcuerdoSeguimiento(\''+t.actaId+'\','+t.idx+',this.value)">'+
+          Object.keys(ESTADO_ACUERDO_LABEL).map(function(k){return '<option value="'+k+'"'+(k===t.estado?' selected':'')+'>'+ESTADO_ACUERDO_LABEL[k]+'</option>';}).join('')+
+        '</select></td></tr>';
+    }).join('')+'</tbody></table>';
+}
+function cambiarEstadoAcuerdoSeguimiento(actaId, idx, nuevoEstado){
+  var a = actasReunion.find(function(x){return x.id===actaId;});
+  if(!a || !a.acuerdos || !a.acuerdos[idx]) return;
+  a.acuerdos[idx].estado = nuevoEstado;
+  if(nuevoEstado==='cumplido') a.acuerdos[idx].fechaCumplimiento = new Date().toISOString().slice(0,10);
+  window.fbFetch(fbUrl('iglesia/actasReunion/'+actaId), {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(a)}, function(e){
+    if(e){ alert('Error al actualizar.'); return; }
+    registrarAuditoria('actasReunion', 'editar', 'Acuerdo actualizado a "'+ESTADO_ACUERDO_LABEL[nuevoEstado]+'": '+a.acuerdos[idx].descripcion);
+    renderSeguimientoAcuerdos();
+  });
+}
+function nombresAsistentesActa(a){
+  return (a.asistentesIds||[]).map(function(id){ var f=feligreses.find(function(x){return x.id===id;}); return f?(f.nombres+' '+f.apellidos):'?'; });
+}
+function construirHtmlActa(a){
+  var nombreIglesia = (iglesiaConfig && iglesiaConfig.nombre) ? iglesiaConfig.nombre : '';
+  var asistentes = nombresAsistentesActa(a);
+  var acuerdosFilas = (a.acuerdos||[]).map(function(ac, i){
+    return '<tr><td style="padding:6px 8px;border-bottom:1px solid #eee;">'+(i+1)+'</td>'+
+      '<td style="padding:6px 8px;border-bottom:1px solid #eee;">'+ac.descripcion+'</td>'+
+      '<td style="padding:6px 8px;border-bottom:1px solid #eee;">'+(ac.responsableNombre||'-')+'</td>'+
+      '<td style="padding:6px 8px;border-bottom:1px solid #eee;">'+(ac.fechaLimite||'-')+'</td>'+
+      '<td style="padding:6px 8px;border-bottom:1px solid #eee;">'+ESTADO_ACUERDO_LABEL[ac.estado]+'</td></tr>';
+  }).join('') || '<tr><td colspan="5" style="padding:8px;color:#888;text-align:center;">Sin acuerdos registrados</td></tr>';
+  return '<div style="font-family:Georgia,serif;max-width:800px;margin:0 auto;padding:32px;color:#222;">'+
+    '<div style="text-align:center;border-bottom:2px solid #7a3b3f;padding-bottom:14px;margin-bottom:18px;">'+
+      (nombreIglesia?'<div style="font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#b08a3e;">'+nombreIglesia+'</div>':'')+
+      '<h1 style="font-size:22px;margin:8px 0 4px;">Acta de Reunion'+(a.numero?' No. '+a.numero:'')+'</h1>'+
+      '<div style="font-size:12px;color:#888;">'+a.tipo+' &middot; '+a.fecha+(a.horaInicio?' &middot; '+a.horaInicio+(a.horaFin?' a '+a.horaFin:''):'')+'</div>'+
+    '</div>'+
+    '<div style="font-size:13px;margin-bottom:14px;">'+
+      (a.lugar?'<div><b>Lugar:</b> '+a.lugar+'</div>':'')+
+      (a.preside?'<div><b>Preside:</b> '+a.preside+'</div>':'')+
+      (a.secretario?'<div><b>Secretario/a:</b> '+a.secretario+'</div>':'')+
+      '<div><b>Asistentes ('+asistentes.length+'):</b> '+(asistentes.join(', ')||'-')+'</div>'+
+    '</div>'+
+    (a.versoTexto?('<div style="background:#faf7f2;border-left:3px solid #b08a3e;padding:10px 14px;margin-bottom:16px;font-style:italic;font-size:13px;">'+a.versoTexto+'<div style="text-align:right;color:#b08a3e;font-size:11px;margin-top:4px;">'+a.versoRef+'</div></div>'):'')+
+    (a.ordenDia?('<h2 style="font-size:15px;color:#7a3b3f;border-bottom:1px solid #ccc;padding-bottom:4px;">Orden del Dia</h2><p style="font-size:13px;white-space:pre-wrap;margin-bottom:16px;">'+a.ordenDia+'</p>'):'')+
+    (a.desarrollo?('<h2 style="font-size:15px;color:#7a3b3f;border-bottom:1px solid #ccc;padding-bottom:4px;">Desarrollo de la Reunion</h2><p style="font-size:13px;white-space:pre-wrap;margin-bottom:16px;">'+a.desarrollo+'</p>'):'')+
+    '<h2 style="font-size:15px;color:#7a3b3f;border-bottom:1px solid #ccc;padding-bottom:4px;">Acuerdos y Compromisos</h2>'+
+    '<table style="width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:16px;"><thead><tr>'+
+      '<th style="text-align:left;padding:6px 8px;border-bottom:2px solid #7a3b3f;">#</th>'+
+      '<th style="text-align:left;padding:6px 8px;border-bottom:2px solid #7a3b3f;">Acuerdo</th>'+
+      '<th style="text-align:left;padding:6px 8px;border-bottom:2px solid #7a3b3f;">Responsable</th>'+
+      '<th style="text-align:left;padding:6px 8px;border-bottom:2px solid #7a3b3f;">Fecha limite</th>'+
+      '<th style="text-align:left;padding:6px 8px;border-bottom:2px solid #7a3b3f;">Estado</th>'+
+    '</tr></thead><tbody>'+acuerdosFilas+'</tbody></table>'+
+    (a.proximaReunion?('<p style="font-size:13px;"><b>Proxima reunion:</b> '+a.proximaReunion+'</p>'):'')+
+    '<div style="display:flex;justify-content:space-between;margin-top:60px;font-size:12px;text-align:center;">'+
+      '<div style="width:45%;"><div style="border-top:1px solid #333;padding-top:6px;">Firma de quien preside<br>'+(a.preside||'')+'</div></div>'+
+      '<div style="width:45%;"><div style="border-top:1px solid #333;padding-top:6px;">Firma del Secretario/a<br>'+(a.secretario||'')+'</div></div>'+
+    '</div>'+
+  '</div>';
+}
+function imprimirActa(id){
+  var a = actasReunion.find(function(x){return x.id===id;});
+  if(!a) return;
+  var w = window.open('', '_blank');
+  w.document.write('<html><head><title>Acta de Reunion — '+a.fecha+'</title></head><body>'+construirHtmlActa(a)+'</body></html>');
+  w.document.close(); w.focus();
+  setTimeout(function(){ w.print(); }, 300);
+}
+function descargarActaWord(id){
+  var a = actasReunion.find(function(x){return x.id===id;});
+  if(!a) return;
+  var blob = new Blob(['\ufeff<html><head><meta charset="utf-8"></head><body>'+construirHtmlActa(a)+'</body></html>'], {type:'application/msword'});
+  var link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'acta_reunion_'+a.fecha+'.doc';
+  link.click();
+}
+function descargarActaPDF(id){
+  var a = actasReunion.find(function(x){return x.id===id;});
+  if(!a) return;
+  var nombreIglesia = (iglesiaConfig && iglesiaConfig.nombre) ? iglesiaConfig.nombre : '';
+  var asistentes = nombresAsistentesActa(a);
+  var doc = new window.jspdf.jsPDF();
+  var y = 16;
+  if(nombreIglesia){ doc.setFontSize(9); doc.setTextColor(176,138,62); doc.text(nombreIglesia.toUpperCase(), 105, y, {align:'center'}); y+=6; }
+  doc.setFontSize(16); doc.setTextColor(122,59,63); doc.setFont(undefined,'bold');
+  doc.text('Acta de Reunion'+(a.numero?' No. '+a.numero:''), 105, y, {align:'center'}); y+=6;
+  doc.setFontSize(9); doc.setTextColor(140);
+  doc.text(a.tipo+' - '+a.fecha, 105, y, {align:'center'}); y+=9;
+  doc.setTextColor(0); doc.setFontSize(10);
+  if(a.lugar){ doc.text('Lugar: '+a.lugar, 14, y); y+=5; }
+  if(a.preside){ doc.text('Preside: '+a.preside, 14, y); y+=5; }
+  if(a.secretario){ doc.text('Secretario/a: '+a.secretario, 14, y); y+=5; }
+  var asistLines = doc.splitTextToSize('Asistentes ('+asistentes.length+'): '+(asistentes.join(', ')||'-'), 180);
+  doc.text(asistLines, 14, y); y += asistLines.length*5+4;
+  if(a.versoTexto){
+    doc.setFont(undefined,'italic');
+    var vLines = doc.splitTextToSize(a.versoTexto+' ('+a.versoRef+')', 180);
+    doc.text(vLines, 14, y); y += vLines.length*5+6;
+    doc.setFont(undefined,'normal');
+  }
+  if(a.ordenDia){
+    if(y>260){ doc.addPage(); y=18; }
+    doc.setFontSize(12); doc.setFont(undefined,'bold'); doc.text('Orden del Dia', 14, y); doc.setFont(undefined,'normal'); y+=6;
+    doc.setFontSize(9.5);
+    var odLines = doc.splitTextToSize(a.ordenDia, 180); doc.text(odLines, 14, y); y += odLines.length*5+6;
+  }
+  if(a.desarrollo){
+    if(y>250){ doc.addPage(); y=18; }
+    doc.setFontSize(12); doc.setFont(undefined,'bold'); doc.text('Desarrollo de la Reunion', 14, y); doc.setFont(undefined,'normal'); y+=6;
+    doc.setFontSize(9.5);
+    var dLines = doc.splitTextToSize(a.desarrollo, 180); doc.text(dLines, 14, y); y += dLines.length*5+6;
+  }
+  if(y>250){ doc.addPage(); y=18; }
+  doc.setFontSize(12); doc.setFont(undefined,'bold'); doc.text('Acuerdos y Compromisos', 14, y); doc.setFont(undefined,'normal'); y+=7;
+  doc.setFontSize(9);
+  (a.acuerdos||[]).forEach(function(ac,i){
+    if(y>275){ doc.addPage(); y=18; }
+    var acLines = doc.splitTextToSize((i+1)+'. '+ac.descripcion+' — Responsable: '+(ac.responsableNombre||'-')+' — Limite: '+(ac.fechaLimite||'-')+' — '+ESTADO_ACUERDO_LABEL[ac.estado], 180);
+    doc.text(acLines, 14, y); y += acLines.length*5+2;
+  });
+  y += 30;
+  if(y>270){ doc.addPage(); y=30; }
+  doc.line(20,y,90,y); doc.line(120,y,190,y);
+  doc.setFontSize(9);
+  doc.text('Firma de quien preside', 20, y+5);
+  doc.text('Firma del Secretario/a', 120, y+5);
+  doc.save('acta_reunion_'+a.fecha+'.pdf');
 }
 </script>
 
